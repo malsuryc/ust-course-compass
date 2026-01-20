@@ -4,21 +4,41 @@ import { memo } from "react";
 import { Handle, Position, type NodeProps } from "reactflow";
 import type { CourseNodeData } from "@/types/graph";
 
+// Shared handle style
+const handleStyle = {
+  background: "var(--c-border-active)",
+  width: 8,
+  height: 8,
+  borderRadius: 0,
+  border: "none",
+};
+
 /**
  * Custom Course Node Component
  * Blueprint style: rectangular, no shadows, monospace data
+ * Supports 4 directional handles (top, bottom, left, right) for semantic zoning
  */
 function CourseNodeComponent({ data, selected }: NodeProps<CourseNodeData>) {
-  const { courseCode, courseName, credits, departmentCode, level, careerType } =
-    data;
+  const {
+    courseCode,
+    courseName,
+    credits,
+    departmentCode,
+    level,
+    careerType,
+    isMaster,
+    zone,
+  } = data;
 
   return (
     <div
       style={{
         width: 200,
         minHeight: 80,
-        background: "var(--c-bg-card)",
-        border: selected
+        background: isMaster ? "var(--c-bg-outer)" : "var(--c-bg-card)",
+        border: isMaster
+          ? "2px solid var(--c-edge-prereq)"
+          : selected
           ? "2px solid var(--c-border-active)"
           : "1px solid var(--c-border)",
         padding: "var(--space-sm)",
@@ -29,27 +49,56 @@ function CourseNodeComponent({ data, selected }: NodeProps<CourseNodeData>) {
         transition: "border-color 0.1s",
       }}
       onMouseEnter={(e) => {
-        if (!selected) {
+        if (!selected && !isMaster) {
           e.currentTarget.style.borderColor = "var(--c-border-active)";
         }
       }}
       onMouseLeave={(e) => {
-        if (!selected) {
+        if (!selected && !isMaster) {
           e.currentTarget.style.borderColor = "var(--c-border)";
         }
       }}
     >
-      {/* Handles for edges */}
+      {/* Top Handle (target for south zone incoming, source for north zone outgoing) */}
       <Handle
+        id="targetTop"
         type="target"
         position={Position.Top}
-        style={{
-          background: "var(--c-border-active)",
-          width: 8,
-          height: 8,
-          borderRadius: 0,
-          border: "none",
-        }}
+        style={handleStyle}
+      />
+      <Handle
+        id="sourceBottom"
+        type="source"
+        position={Position.Top}
+        style={{ ...handleStyle, left: "40%" }}
+      />
+
+      {/* Left Handle (for exclusions - west zone) */}
+      <Handle
+        id="sourceLeft"
+        type="source"
+        position={Position.Left}
+        style={handleStyle}
+      />
+      <Handle
+        id="targetRight"
+        type="target"
+        position={Position.Left}
+        style={{ ...handleStyle, top: "40%" }}
+      />
+
+      {/* Right Handle (for corequisites - east zone) */}
+      <Handle
+        id="sourceRight"
+        type="source"
+        position={Position.Right}
+        style={handleStyle}
+      />
+      <Handle
+        id="targetLeft"
+        type="target"
+        position={Position.Right}
+        style={{ ...handleStyle, top: "40%" }}
       />
 
       {/* Header: Course Code */}
@@ -147,16 +196,18 @@ function CourseNodeComponent({ data, selected }: NodeProps<CourseNodeData>) {
         </span>
       </div>
 
+      {/* Bottom Handle (source for south zone outgoing, target for north zone incoming) */}
       <Handle
+        id="sourceTop"
         type="source"
         position={Position.Bottom}
-        style={{
-          background: "var(--c-border-active)",
-          width: 8,
-          height: 8,
-          borderRadius: 0,
-          border: "none",
-        }}
+        style={handleStyle}
+      />
+      <Handle
+        id="targetBottom"
+        type="target"
+        position={Position.Bottom}
+        style={{ ...handleStyle, left: "40%" }}
       />
     </div>
   );

@@ -1,6 +1,39 @@
 import type { Node, Edge } from "reactflow";
 
 // ============================================================
+// Zone Types (Semantic Zoning Layout)
+// ============================================================
+
+export type CourseZone =
+  | "center"  // Master node
+  | "north"   // Post-requisites (courses that require the master)
+  | "south"   // Prerequisites (courses required by the master)
+  | "west"    // Exclusions (mutually exclusive courses)
+  | "east";   // Corequisites (courses to take together)
+
+// ============================================================
+// Graph Configuration (User-adjustable)
+// ============================================================
+
+export interface GraphConfig {
+  /** Maximum depth to traverse for prerequisites (south zone) */
+  maxPrereqDepth: number;
+  /** Maximum depth to traverse for post-requisites (north zone) */
+  maxPostreqDepth: number;
+  /** Show exclusion zone (west) */
+  showExclusions: boolean;
+  /** Show corequisite zone (east) */
+  showCorequisites: boolean;
+}
+
+export const DEFAULT_GRAPH_CONFIG: GraphConfig = {
+  maxPrereqDepth: 3,
+  maxPostreqDepth: 2,
+  showExclusions: true,
+  showCorequisites: true,
+};
+
+// ============================================================
 // Edge Types & Styling
 // ============================================================
 
@@ -66,6 +99,12 @@ export interface CourseNodeDisplayData {
   departmentCode: string;
   level: number; // Derived from courseNumber[0], e.g., 1, 2, 3, 4
   careerType: "UG" | "PG";
+  /** Zone this node belongs to in the semantic layout */
+  zone: CourseZone;
+  /** Depth from the master node (0 = master, 1 = direct connection, etc.) */
+  depth: number;
+  /** Whether this is the master (center) node */
+  isMaster: boolean;
 }
 
 /** Full metadata stored for filtering/searching (not rendered directly) */

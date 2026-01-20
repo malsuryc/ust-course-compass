@@ -6,8 +6,10 @@ import { fetchCatalog } from "@/lib/api";
 import {
   buildCourseGraph,
   createCourseMap,
+  buildReversePrereqMap,
 } from "@/lib/graphBuilder";
-import type { RawCourse, CourseGraph } from "@/types/graph";
+import type { RawCourse, CourseGraph, GraphConfig } from "@/types/graph";
+import { DEFAULT_GRAPH_CONFIG } from "@/types/graph";
 import { normalizeCourseCode } from "@/lib/prerequisiteParser";
 
 const DEFAULT_MASTER_COURSE = "COMP1021";
@@ -27,6 +29,12 @@ export interface UseCourseGraphResult {
   courseExists: boolean;
   /** Search for courses by prefix (returns matching course codes) */
   searchCourses: (query: string) => string[];
+  /** Current graph configuration */
+  config: GraphConfig;
+  /** Update graph configuration */
+  setConfig: (config: GraphConfig) => void;
+  /** Update a single config value */
+  updateConfig: <K extends keyof GraphConfig>(key: K, value: GraphConfig[K]) => void;
 }
 
 /**
@@ -34,6 +42,7 @@ export interface UseCourseGraphResult {
  */
 export function useCourseGraph(): UseCourseGraphResult {
   const [masterCourseCode, setMasterCourseCode] = useState(DEFAULT_MASTER_COURSE);
+  const [config, setConfig] = useState<GraphConfig>(DEFAULT_GRAPH_CONFIG);
 
   // Fetch course catalog
   const {
@@ -53,13 +62,19 @@ export function useCourseGraph(): UseCourseGraphResult {
     return createCourseMap(catalog);
   }, [catalog]);
 
+  // Build reverse prerequisite map (course -> courses that require it)
+  const reversePrereqMap = useMemo(() => {
+    if (!catalog || courseMap.size === 0) return undefined;
+    return buildReversePrereqMap(courseMap);
+  }, [catalog, courseMap]);
+
   // Check if master course exists
   const courseExists = useMemo(() => {
     const normalized = normalizeCourseCode(masterCourseCode);
     return courseMap.has(normalized);
   }, [courseMap, masterCourseCode]);
 
-  // Build graph when master course changes
+  // Build graph when master course or config changes
   const graph = useMemo<CourseGraph>(() => {
     if (!catalog || catalog.length === 0 || !courseExists) {
       return { nodes: [], edges: [] };
@@ -68,15 +83,23 @@ export function useCourseGraph(): UseCourseGraphResult {
     return buildCourseGraph({
       targetCourseCode: masterCourseCode,
       courseMap,
-      maxDepth: 10,
-      includePostrequisites: false,
+      config,
+      reversePrereqMap,
     });
-  }, [catalog, courseMap, masterCourseCode, courseExists]);
+  }, [catalog, courseMap, masterCourseCode, courseExists, config, reversePrereqMap]);
 
   // Set master course (normalize input)
   const setMasterCourse = useCallback((code: string) => {
     const normalized = normalizeCourseCode(code);
     setMasterCourseCode(normalized);
+  }, []);
+
+  // Update a single config value
+  const updateConfig = useCallback(<K extends keyof GraphConfig>(
+    key: K,
+    value: GraphConfig[K]
+  ) => {
+    setConfig((prev) => ({ ...prev, [key]: value }));
   }, []);
 
   // Search courses by query (prefix match on courseCode)
@@ -105,5 +128,8 @@ export function useCourseGraph(): UseCourseGraphResult {
     error: error ?? null,
     courseExists,
     searchCourses,
+    config,
+    setConfig,
+    updateConfig,
   };
 }

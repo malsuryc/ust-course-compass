@@ -1,4 +1,3 @@
-import dagre from "dagre";
 import type {
   RawCourse,
   CourseGraph,
@@ -6,7 +5,10 @@ import type {
   CourseEdge,
   CourseNodeData,
   CourseEdgeType,
+  CourseZone,
+  GraphConfig,
 } from "@/types/graph";
+import { DEFAULT_GRAPH_CONFIG } from "@/types/graph";
 import {
   parsePrerequisite,
   parseCommaSeparatedCourses,
@@ -19,7 +21,10 @@ import {
 
 const NODE_WIDTH = 200;
 const NODE_HEIGHT = 80;
-const GRAPH_DIRECTION: "TB" | "LR" = "TB"; // Top-to-Bottom for hierarchy
+const HORIZONTAL_GAP = 60;  // Gap between nodes horizontally
+const VERTICAL_GAP = 100;   // Gap between nodes vertically
+const ZONE_PADDING = 80;    // Padding around zones
+const BORDER_RING_RADIUS = 250; // Distance from center to depth-1 border ring
 
 // ============================================================
 // Helper Functions
@@ -47,9 +52,14 @@ function formatCredits(minUnits: string, maxUnits: string): string {
 }
 
 /**
- * Converts a RawCourse to CourseNodeData.
+ * Converts a RawCourse to CourseNodeData with zone info.
  */
-function rawCourseToNodeData(course: RawCourse): CourseNodeData {
+function rawCourseToNodeData(
+  course: RawCourse,
+  zone: CourseZone,
+  depth: number,
+  isMaster: boolean = false
+): CourseNodeData {
   return {
     // Display data (minimal)
     courseCode: course.courseCode,
@@ -58,6 +68,9 @@ function rawCourseToNodeData(course: RawCourse): CourseNodeData {
     departmentCode: course.departmentCode,
     level: deriveCourseLevel(course.courseNumber),
     careerType: course.academicCareerType === "PG" ? "PG" : "UG",
+    zone,
+    depth,
+    isMaster,
 
     // Metadata (for filtering/searching)
     meta: {
@@ -102,22 +115,48 @@ export interface BuildGraphOptions {
   targetCourseCode: string;
   /** All courses in the catalog (indexed by courseCode for quick lookup) */
   courseMap: Map<string, RawCourse>;
-  /** Maximum depth to traverse for prerequisites (default: 10) */
-  maxDepth?: number;
-  /** Include courses that depend on the target (reverse dependencies) */
-  includePostrequisites?: boolean;
+  /** Graph configuration options */
+  config?: GraphConfig;
+  /** Reverse lookup map: course code -> courses that require it */
+  reversePrereqMap?: Map<string, Set<string>>;
 }
 
 /**
- * Builds a single-course dependency tree graph.
- * Traverses prerequisites, corequisites, exclusions, and equivalents.
+ * Builds a reverse prerequisite lookup map at runtime.
+ * Maps each course code to the set of courses that require it.
+ */
+export function buildReversePrereqMap(
+  courseMap: Map<string, RawCourse>
+): Map<string, Set<string>> {
+  const reverseMap = new Map<string, Set<string>>();
+
+  for (const [courseCode, course] of courseMap) {
+    const prereq = parsePrerequisite(course.coursePrerequisite);
+    for (const prereqCode of prereq.courseCodes) {
+      if (!reverseMap.has(prereqCode)) {
+        reverseMap.set(prereqCode, new Set());
+      }
+      reverseMap.get(prereqCode)!.add(courseCode);
+    }
+  }
+
+  return reverseMap;
+}
+
+/**
+ * Builds a semantic-zoned course dependency graph.
+ * - Center: Master node
+ * - North: Post-requisites (courses that require the master)
+ * - South: Prerequisites (courses required by the master)
+ * - West: Exclusions (mutually exclusive courses)
+ * - East: Corequisites (courses to take together)
  */
 export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
   const {
     targetCourseCode,
     courseMap,
-    maxDepth = 10,
-    includePostrequisites = false,
+    config = DEFAULT_GRAPH_CONFIG,
+    reversePrereqMap,
   } = options;
 
   const normalizedTarget = normalizeCourseCode(targetCourseCode);
@@ -129,29 +168,35 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
 
   const nodesMap = new Map<string, CourseNode>();
   const edgesMap = new Map<string, CourseEdge>();
-  const visited = new Set<string>();
 
   // Helper to add a node
-  const addNode = (course: RawCourse): CourseNode => {
+  const addNode = (
+    course: RawCourse,
+    zone: CourseZone,
+    depth: number,
+    isMaster: boolean = false
+  ): CourseNode => {
     const code = normalizeCourseCode(course.courseCode);
     if (!nodesMap.has(code)) {
       const node: CourseNode = {
         id: code,
         type: "course",
-        position: { x: 0, y: 0 }, // Will be set by dagre
-        data: rawCourseToNodeData(course),
+        position: { x: 0, y: 0 }, // Will be set by zoned layout
+        data: rawCourseToNodeData(course, zone, depth, isMaster),
       };
       nodesMap.set(code, node);
     }
     return nodesMap.get(code)!;
   };
 
-  // Helper to add an edge
+  // Helper to add an edge with handle info
   const addEdge = (
     source: string,
     target: string,
     type: CourseEdgeType,
-    label?: string
+    label?: string,
+    sourceHandle?: string,
+    targetHandle?: string
   ) => {
     const edgeId = createEdgeId(source, target, type);
     if (!edgesMap.has(edgeId)) {
@@ -160,96 +205,146 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
         source,
         target,
         type: "default",
+        sourceHandle,
+        targetHandle,
         data: { edgeType: type, label },
       };
       edgesMap.set(edgeId, edge);
     }
   };
 
-  // Recursive function to traverse prerequisites
-  const traversePrerequisites = (courseCode: string, depth: number) => {
-    if (depth > maxDepth || visited.has(courseCode)) {
+  // ========== Add Master Node (Center) ==========
+  addNode(targetCourse, "center", 0, true);
+
+  // ========== South Zone: Prerequisites ==========
+  const visitedSouth = new Set<string>();
+  const traversePrereqs = (courseCode: string, depth: number) => {
+    if (depth > config.maxPrereqDepth || visitedSouth.has(courseCode)) {
       return;
     }
-    visited.add(courseCode);
+    visitedSouth.add(courseCode);
 
     const course = courseMap.get(courseCode);
-    if (!course) {
-      return;
-    }
+    if (!course) return;
 
-    addNode(course);
-
-    // Parse and add prerequisite edges
     const prereq = parsePrerequisite(course.coursePrerequisite);
     for (const prereqCode of prereq.courseCodes) {
       const prereqCourse = courseMap.get(prereqCode);
-      if (prereqCourse) {
-        addNode(prereqCourse);
-        // Edge: prereqCode -> courseCode (prerequisite points to the course it enables)
+      if (prereqCourse && !nodesMap.has(prereqCode)) {
+        addNode(prereqCourse, "south", depth);
+        // Edge: prereq -> course (bottom to top)
         addEdge(
           prereqCode,
           courseCode,
           "prerequisite",
-          prereq.hasAnd && prereq.hasOr ? "AND/OR" : prereq.hasOr ? "OR" : undefined
+          prereq.hasAnd && prereq.hasOr
+            ? "AND/OR"
+            : prereq.hasOr
+            ? "OR"
+            : undefined,
+          "sourceTop",
+          "targetBottom"
         );
-        traversePrerequisites(prereqCode, depth + 1);
-      }
-    }
-
-    // Parse and add corequisite edges
-    const coreqs = parseCommaSeparatedCourses(course.courseCorequisite);
-    for (const coreqCode of coreqs) {
-      const coreqCourse = courseMap.get(coreqCode);
-      if (coreqCourse) {
-        addNode(coreqCourse);
-        addEdge(courseCode, coreqCode, "corequisite");
-      }
-    }
-
-    // Parse and add exclusion edges
-    const exclusions = parseCommaSeparatedCourses(course.courseExclusion);
-    for (const exclCode of exclusions) {
-      const exclCourse = courseMap.get(exclCode);
-      if (exclCourse) {
-        addNode(exclCourse);
-        addEdge(courseCode, exclCode, "exclusion");
-      }
-    }
-
-    // Add equivalent edges (previous codes)
-    for (const prevCode of course.previousCourseCodes || []) {
-      const normalizedPrev = normalizeCourseCode(prevCode);
-      const prevCourse = courseMap.get(normalizedPrev);
-      if (prevCourse) {
-        addNode(prevCourse);
-        addEdge(normalizedPrev, courseCode, "equivalent");
-      }
-    }
-
-    // Add equivalent edges (alternative codes)
-    for (const altCode of course.alternativeCourseCodes || []) {
-      const normalizedAlt = normalizeCourseCode(altCode);
-      const altCourse = courseMap.get(normalizedAlt);
-      if (altCourse) {
-        addNode(altCourse);
-        addEdge(courseCode, normalizedAlt, "equivalent");
+        traversePrereqs(prereqCode, depth + 1);
+      } else if (prereqCourse && nodesMap.has(prereqCode)) {
+        // Node already exists, just add edge
+        addEdge(
+          prereqCode,
+          courseCode,
+          "prerequisite",
+          undefined,
+          "sourceTop",
+          "targetBottom"
+        );
       }
     }
   };
+  traversePrereqs(normalizedTarget, 1);
 
-  // Build the graph starting from target course
-  traversePrerequisites(normalizedTarget, 0);
+  // ========== North Zone: Post-requisites ==========
+  if (reversePrereqMap) {
+    const visitedNorth = new Set<string>();
+    const traversePostreqs = (courseCode: string, depth: number) => {
+      if (depth > config.maxPostreqDepth || visitedNorth.has(courseCode)) {
+        return;
+      }
+      visitedNorth.add(courseCode);
 
-  // Optionally find courses that require the target (postrequisites)
-  if (includePostrequisites) {
-    for (const [code, course] of courseMap) {
-      if (visited.has(code)) continue;
+      const postreqs = reversePrereqMap.get(courseCode);
+      if (!postreqs) return;
 
-      const prereq = parsePrerequisite(course.coursePrerequisite);
-      if (prereq.courseCodes.includes(normalizedTarget)) {
-        addNode(course);
-        addEdge(normalizedTarget, code, "prerequisite");
+      for (const postreqCode of postreqs) {
+        const postreqCourse = courseMap.get(postreqCode);
+        if (postreqCourse && !nodesMap.has(postreqCode)) {
+          addNode(postreqCourse, "north", depth);
+          // Edge: course -> postreq (top to bottom)
+          addEdge(
+            courseCode,
+            postreqCode,
+            "prerequisite",
+            undefined,
+            "sourceBottom",
+            "targetTop"
+          );
+          // Recursively find north-north (only north zone connections)
+          traversePostreqs(postreqCode, depth + 1);
+        } else if (postreqCourse && nodesMap.has(postreqCode)) {
+          // Node already exists, just add edge if it's in north zone
+          const existingNode = nodesMap.get(postreqCode);
+          if (existingNode?.data.zone === "north") {
+            addEdge(
+              courseCode,
+              postreqCode,
+              "prerequisite",
+              undefined,
+              "sourceBottom",
+              "targetTop"
+            );
+          }
+        }
+      }
+    };
+    traversePostreqs(normalizedTarget, 1);
+  }
+
+  // ========== West Zone: Exclusions ==========
+  if (config.showExclusions) {
+    const exclusions = parseCommaSeparatedCourses(
+      targetCourse.courseExclusion
+    );
+    for (const exclCode of exclusions) {
+      const exclCourse = courseMap.get(exclCode);
+      if (exclCourse && !nodesMap.has(exclCode)) {
+        addNode(exclCourse, "west", 1);
+        // Exclusion edge (conflict, undirected - use left handles)
+        addEdge(
+          normalizedTarget,
+          exclCode,
+          "exclusion",
+          undefined,
+          "sourceLeft",
+          "targetRight"
+        );
+      }
+    }
+  }
+
+  // ========== East Zone: Corequisites ==========
+  if (config.showCorequisites) {
+    const coreqs = parseCommaSeparatedCourses(targetCourse.courseCorequisite);
+    for (const coreqCode of coreqs) {
+      const coreqCourse = courseMap.get(coreqCode);
+      if (coreqCourse && !nodesMap.has(coreqCode)) {
+        addNode(coreqCourse, "east", 1);
+        // Corequisite edge (bidirectional binding - use right handles)
+        addEdge(
+          normalizedTarget,
+          coreqCode,
+          "corequisite",
+          undefined,
+          "sourceRight",
+          "targetLeft"
+        );
       }
     }
   }
@@ -257,54 +352,138 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
   const nodes = Array.from(nodesMap.values());
   const edges = Array.from(edgesMap.values());
 
-  // Apply dagre layout
-  return applyDagreLayout({ nodes, edges });
+  // Apply zoned layout
+  return applyZonedLayout({ nodes, edges });
 }
 
 /**
- * Applies dagre layout to position nodes hierarchically.
+ * Applies semantic zoned layout to position nodes.
+ * - Center: Master node at (0, 0)
+ * - North: Post-requisites above center (hierarchical tree going up)
+ * - South: Prerequisites below center (hierarchical tree going down)
+ * - West: Exclusions to the left (horizontal row)
+ * - East: Corequisites to the right (horizontal row)
  */
-export function applyDagreLayout(graph: CourseGraph): CourseGraph {
+export function applyZonedLayout(graph: CourseGraph): CourseGraph {
   const { nodes, edges } = graph;
 
   if (nodes.length === 0) {
     return graph;
   }
 
-  const dagreGraph = new dagre.graphlib.Graph();
-  dagreGraph.setDefaultEdgeLabel(() => ({}));
-  dagreGraph.setGraph({
-    rankdir: GRAPH_DIRECTION,
-    nodesep: 50,
-    ranksep: 100,
-    marginx: 20,
-    marginy: 20,
-  });
+  // Group nodes by zone
+  const nodesByZone: Record<CourseZone, CourseNode[]> = {
+    center: [],
+    north: [],
+    south: [],
+    west: [],
+    east: [],
+  };
 
-  // Add nodes to dagre
   for (const node of nodes) {
-    dagreGraph.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+    nodesByZone[node.data.zone].push(node);
   }
 
-  // Add edges to dagre
-  for (const edge of edges) {
-    dagreGraph.setEdge(edge.source, edge.target);
-  }
+  // Group by depth within each zone
+  const groupByDepth = (zoneNodes: CourseNode[]): Map<number, CourseNode[]> => {
+    const groups = new Map<number, CourseNode[]>();
+    for (const node of zoneNodes) {
+      const depth = node.data.depth;
+      if (!groups.has(depth)) {
+        groups.set(depth, []);
+      }
+      groups.get(depth)!.push(node);
+    }
+    return groups;
+  };
 
-  // Run layout
-  dagre.layout(dagreGraph);
+  const positionedNodes: CourseNode[] = [];
 
-  // Apply computed positions
-  const positionedNodes = nodes.map((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
-    return {
+  // ========== Center Zone (Master) ==========
+  for (const node of nodesByZone.center) {
+    positionedNodes.push({
       ...node,
-      position: {
-        x: nodeWithPosition.x - NODE_WIDTH / 2,
-        y: nodeWithPosition.y - NODE_HEIGHT / 2,
-      },
-    };
-  });
+      position: { x: -NODE_WIDTH / 2, y: -NODE_HEIGHT / 2 },
+    });
+  }
+
+  // ========== South Zone (Prerequisites - below center) ==========
+  const southByDepth = groupByDepth(nodesByZone.south);
+  const southDepths = Array.from(southByDepth.keys()).sort((a, b) => a - b);
+
+  for (const depth of southDepths) {
+    const depthNodes = southByDepth.get(depth)!;
+    const rowWidth = depthNodes.length * (NODE_WIDTH + HORIZONTAL_GAP) - HORIZONTAL_GAP;
+    const startX = -rowWidth / 2;
+    const y = NODE_HEIGHT / 2 + ZONE_PADDING + (depth - 1) * (NODE_HEIGHT + VERTICAL_GAP);
+
+    depthNodes.forEach((node, index) => {
+      positionedNodes.push({
+        ...node,
+        position: {
+          x: startX + index * (NODE_WIDTH + HORIZONTAL_GAP),
+          y: y,
+        },
+      });
+    });
+  }
+
+  // ========== North Zone (Post-requisites - above center) ==========
+  const northByDepth = groupByDepth(nodesByZone.north);
+  const northDepths = Array.from(northByDepth.keys()).sort((a, b) => a - b);
+
+  for (const depth of northDepths) {
+    const depthNodes = northByDepth.get(depth)!;
+    const rowWidth = depthNodes.length * (NODE_WIDTH + HORIZONTAL_GAP) - HORIZONTAL_GAP;
+    const startX = -rowWidth / 2;
+    const y = -NODE_HEIGHT / 2 - ZONE_PADDING - (depth) * (NODE_HEIGHT + VERTICAL_GAP);
+
+    depthNodes.forEach((node, index) => {
+      positionedNodes.push({
+        ...node,
+        position: {
+          x: startX + index * (NODE_WIDTH + HORIZONTAL_GAP),
+          y: y,
+        },
+      });
+    });
+  }
+
+  // ========== West Zone (Exclusions - left of center) ==========
+  const westNodes = nodesByZone.west;
+  if (westNodes.length > 0) {
+    const colHeight = westNodes.length * (NODE_HEIGHT + HORIZONTAL_GAP) - HORIZONTAL_GAP;
+    const startY = -colHeight / 2;
+    const x = -NODE_WIDTH / 2 - ZONE_PADDING - NODE_WIDTH;
+
+    westNodes.forEach((node, index) => {
+      positionedNodes.push({
+        ...node,
+        position: {
+          x: x,
+          y: startY + index * (NODE_HEIGHT + HORIZONTAL_GAP),
+        },
+      });
+    });
+  }
+
+  // ========== East Zone (Corequisites - right of center) ==========
+  const eastNodes = nodesByZone.east;
+  if (eastNodes.length > 0) {
+    const colHeight = eastNodes.length * (NODE_HEIGHT + HORIZONTAL_GAP) - HORIZONTAL_GAP;
+    const startY = -colHeight / 2;
+    const x = NODE_WIDTH / 2 + ZONE_PADDING;
+
+    eastNodes.forEach((node, index) => {
+      positionedNodes.push({
+        ...node,
+        position: {
+          x: x,
+          y: startY + index * (NODE_HEIGHT + HORIZONTAL_GAP),
+        },
+      });
+    });
+  }
 
   return { nodes: positionedNodes, edges };
 }

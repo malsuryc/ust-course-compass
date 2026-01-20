@@ -15,7 +15,7 @@ import "reactflow/dist/style.css";
 import CourseNodeComponent from "./CourseNode";
 import CourseEdgeComponent from "./CourseEdge";
 import { useCourseGraph } from "@/hooks/useCourseGraph";
-import type { CourseNodeData, CourseEdge } from "@/types/graph";
+import type { CourseNodeData, CourseEdge, GraphConfig } from "@/types/graph";
 
 // Register custom node/edge types
 const nodeTypes = {
@@ -35,9 +35,137 @@ const defaultEdgeOptions = {
   },
 };
 
+// ============================================================
+// Config Panel Component
+// ============================================================
+
+interface ConfigPanelProps {
+  config: GraphConfig;
+  updateConfig: <K extends keyof GraphConfig>(key: K, value: GraphConfig[K]) => void;
+  isExpanded: boolean;
+  onToggle: () => void;
+}
+
+function ConfigPanel({ config, updateConfig, isExpanded, onToggle }: ConfigPanelProps) {
+  const sliderStyle: React.CSSProperties = {
+    width: "100%",
+    accentColor: "var(--c-border-active)",
+    cursor: "pointer",
+  };
+
+  const labelStyle: React.CSSProperties = {
+    fontFamily: "var(--font-mono)",
+    fontSize: "0.625rem",
+    color: "var(--c-text-sub)",
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+  };
+
+  const valueStyle: React.CSSProperties = {
+    fontFamily: "var(--font-mono)",
+    fontSize: "0.75rem",
+    color: "var(--c-text-main)",
+    fontWeight: 600,
+  };
+
+  const checkboxStyle: React.CSSProperties = {
+    accentColor: "var(--c-border-active)",
+    width: 14,
+    height: 14,
+    cursor: "pointer",
+  };
+
+  return (
+    <div
+      style={{
+        background: "var(--c-bg-card)",
+        border: "1px solid var(--c-border)",
+        padding: "var(--space-sm)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--space-sm)",
+        minWidth: isExpanded ? 200 : "auto",
+      }}
+    >
+      {/* Toggle Header */}
+      <div
+        onClick={onToggle}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          cursor: "pointer",
+          ...labelStyle,
+        }}
+      >
+        <span>⚙ CONFIG</span>
+        <span style={{ fontSize: "0.75rem" }}>{isExpanded ? "▼" : "▶"}</span>
+      </div>
+
+      {isExpanded && (
+        <>
+          {/* Prereq Depth Slider */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={labelStyle}>PREREQ DEPTH</span>
+              <span style={valueStyle}>{config.maxPrereqDepth}</span>
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={6}
+              value={config.maxPrereqDepth}
+              onChange={(e) => updateConfig("maxPrereqDepth", parseInt(e.target.value))}
+              style={sliderStyle}
+            />
+          </div>
+
+          {/* Postreq Depth Slider */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={labelStyle}>POSTREQ DEPTH</span>
+              <span style={valueStyle}>{config.maxPostreqDepth}</span>
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={6}
+              value={config.maxPostreqDepth}
+              onChange={(e) => updateConfig("maxPostreqDepth", parseInt(e.target.value))}
+              style={sliderStyle}
+            />
+          </div>
+
+          {/* Toggles */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={config.showExclusions}
+                onChange={(e) => updateConfig("showExclusions", e.target.checked)}
+                style={checkboxStyle}
+              />
+              <span style={labelStyle}>SHOW EXCLUSIONS</span>
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={config.showCorequisites}
+                onChange={(e) => updateConfig("showCorequisites", e.target.checked)}
+                style={checkboxStyle}
+              />
+              <span style={labelStyle}>SHOW COREQUISITES</span>
+            </label>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /**
  * Graph Viewer Component
- * Blueprint-style course dependency visualization
+ * Blueprint-style course dependency visualization with semantic zoning
  */
 export default function GraphViewer() {
   const {
@@ -48,6 +176,8 @@ export default function GraphViewer() {
     error,
     courseExists,
     searchCourses,
+    config,
+    updateConfig,
   } = useCourseGraph();
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -55,6 +185,7 @@ export default function GraphViewer() {
   const [searchInput, setSearchInput] = useState("");
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [configExpanded, setConfigExpanded] = useState(true);
   const reactFlowRef = useRef<HTMLDivElement>(null);
 
   // Update nodes/edges when graph changes
@@ -168,174 +299,180 @@ export default function GraphViewer() {
           background: "var(--c-bg-card)",
           borderBottom: "1px solid var(--c-border)",
           display: "flex",
-          alignItems: "center",
+          alignItems: "flex-start",
           gap: "var(--space-md)",
           flexWrap: "wrap",
         }}
       >
-        {/* Title */}
-        <div
-          style={{
-            fontFamily: "var(--font-ui)",
-            fontWeight: 700,
-            fontSize: "0.875rem",
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-            color: "var(--c-text-main)",
-          }}
-        >
-          Course Graph
-        </div>
-
-        {/* Search Form */}
-        <form
-          onSubmit={handleSearchSubmit}
-          style={{ position: "relative", flex: "1", maxWidth: "300px" }}
-        >
-          <input
-            type="text"
-            value={searchInput}
-            onChange={handleSearchChange}
-            onFocus={() => searchResults.length > 0 && setShowResults(true)}
-            onBlur={() => setTimeout(() => setShowResults(false), 200)}
-            placeholder="ENTER COURSE CODE..."
+        {/* Left Section: Title + Search */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+          {/* Title */}
+          <div
             style={{
-              width: "100%",
-              padding: "var(--space-sm)",
-              fontFamily: "var(--font-mono)",
+              fontFamily: "var(--font-ui)",
+              fontWeight: 700,
               fontSize: "0.875rem",
               textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              color: "var(--c-text-main)",
             }}
-          />
+          >
+            Course Graph
+          </div>
 
-          {/* Search Results Dropdown */}
-          {showResults && searchResults.length > 0 && (
-            <div
+          {/* Search Form */}
+          <form
+            onSubmit={handleSearchSubmit}
+            style={{ position: "relative", width: "220px" }}
+          >
+            <input
+              type="text"
+              value={searchInput}
+              onChange={handleSearchChange}
+              onFocus={() => searchResults.length > 0 && setShowResults(true)}
+              onBlur={() => setTimeout(() => setShowResults(false), 200)}
+              placeholder="ENTER COURSE CODE..."
               style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                background: "var(--c-bg-card)",
-                border: "1px solid var(--c-border)",
-                borderTop: "none",
-                maxHeight: "200px",
-                overflowY: "auto",
-                zIndex: 100,
+                width: "100%",
+                padding: "var(--space-sm)",
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.875rem",
+                textTransform: "uppercase",
               }}
-            >
-              {searchResults.map((code) => (
-                <div
-                  key={code}
-                  onClick={() => handleResultClick(code)}
-                  style={{
-                    padding: "var(--space-sm)",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "0.75rem",
-                    cursor: "pointer",
-                    borderBottom: "1px solid var(--c-border)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "var(--c-bg-outer)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "var(--c-bg-card)";
-                  }}
-                >
-                  {code}
-                </div>
-              ))}
-            </div>
-          )}
-        </form>
+            />
 
-        <button type="submit" onClick={handleSearchSubmit}>
-          Load
-        </button>
+            {/* Search Results Dropdown */}
+            {showResults && searchResults.length > 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  background: "var(--c-bg-card)",
+                  border: "1px solid var(--c-border)",
+                  borderTop: "none",
+                  maxHeight: "200px",
+                  overflowY: "auto",
+                  zIndex: 100,
+                }}
+              >
+                {searchResults.map((code) => (
+                  <div
+                    key={code}
+                    onClick={() => handleResultClick(code)}
+                    style={{
+                      padding: "var(--space-sm)",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "0.75rem",
+                      cursor: "pointer",
+                      borderBottom: "1px solid var(--c-border)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--c-bg-outer)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "var(--c-bg-card)";
+                    }}
+                  >
+                    {code}
+                  </div>
+                ))}
+              </div>
+            )}
+          </form>
 
-        {/* Current Master Display */}
-        <div
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "0.75rem",
-            color: "var(--c-text-sub)",
-          }}
-        >
-          MASTER:{" "}
-          <span style={{ color: "var(--c-text-main)", fontWeight: 600 }}>
-            {masterCourseCode}
-          </span>
-          {!courseExists && (
-            <span style={{ color: "var(--c-error)", marginLeft: "8px" }}>
-              [NOT FOUND]
+          {/* Current Master Display */}
+          <div
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.75rem",
+              color: "var(--c-text-sub)",
+            }}
+          >
+            MASTER:{" "}
+            <span style={{ color: "var(--c-text-main)", fontWeight: 600 }}>
+              {masterCourseCode}
             </span>
-          )}
+            {!courseExists && (
+              <span style={{ color: "var(--c-error)", marginLeft: "8px" }}>
+                [NOT FOUND]
+              </span>
+            )}
+          </div>
         </div>
+
+        {/* Config Panel */}
+        <ConfigPanel
+          config={config}
+          updateConfig={updateConfig}
+          isExpanded={configExpanded}
+          onToggle={() => setConfigExpanded(!configExpanded)}
+        />
 
         {/* Legend */}
         <div
           style={{
             marginLeft: "auto",
             display: "flex",
-            gap: "var(--space-md)",
+            flexDirection: "column",
+            gap: "4px",
             fontFamily: "var(--font-mono)",
             fontSize: "0.625rem",
             color: "var(--c-text-sub)",
           }}
         >
-          <span>
-            <span
-              style={{
-                display: "inline-block",
-                width: 16,
-                height: 2,
-                background: "var(--c-edge-prereq)",
-                marginRight: 4,
-                verticalAlign: "middle",
-              }}
-            />
-            PREREQ
-          </span>
-          <span>
-            <span
-              style={{
-                display: "inline-block",
-                width: 16,
-                height: 2,
-                background: "var(--c-edge-coreq)",
-                marginRight: 4,
-                verticalAlign: "middle",
-                borderTop: "2px dashed var(--c-edge-coreq)",
-              }}
-            />
-            COREQ
-          </span>
-          <span>
-            <span
-              style={{
-                display: "inline-block",
-                width: 16,
-                height: 2,
-                background: "var(--c-edge-excl)",
-                marginRight: 4,
-                verticalAlign: "middle",
-              }}
-            />
-            EXCL
-          </span>
-          <span>
-            <span
-              style={{
-                display: "inline-block",
-                width: 16,
-                height: 2,
-                background: "var(--c-edge-equiv)",
-                marginRight: 4,
-                verticalAlign: "middle",
-              }}
-            />
-            EQUIV
-          </span>
+          <div style={{ display: "flex", gap: "var(--space-md)" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span
+                style={{
+                  width: 16,
+                  height: 2,
+                  background: "var(--c-edge-prereq)",
+                }}
+              />
+              PREREQ
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span
+                style={{
+                  width: 16,
+                  height: 0,
+                  borderTop: "2px dashed var(--c-edge-coreq)",
+                }}
+              />
+              COREQ
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: "var(--space-md)" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span
+                style={{
+                  width: 16,
+                  height: 0,
+                  borderTop: "2px dashed var(--c-edge-excl)",
+                }}
+              />
+              EXCL
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span
+                style={{
+                  width: 16,
+                  height: 0,
+                  borderTop: "2px dotted var(--c-edge-equiv)",
+                }}
+              />
+              EQUIV
+            </span>
+          </div>
+
+          {/* Zone Labels */}
+          <div style={{ marginTop: 4, borderTop: "1px solid var(--c-border)", paddingTop: 4 }}>
+            <span style={{ opacity: 0.7 }}>
+              ↑N:POST · ↓S:PRE · ←W:EXCL · →E:COREQ
+            </span>
+          </div>
         </div>
       </div>
 
