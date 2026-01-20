@@ -473,6 +473,20 @@ export default function GraphViewer() {
               ↑N:POST · ↓S:PRE · ←W:EXCL · →E:COREQ
             </span>
           </div>
+
+          <a
+            href="https://github.com/malsuryc/ust-course-compass"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.625rem",
+              color: "var(--c-text-sub)",
+              textDecoration: "none",
+            }}
+          >
+            [Github]
+          </a>
         </div>
       </div>
 
