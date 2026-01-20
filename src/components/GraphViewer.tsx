@@ -317,7 +317,7 @@ export default function GraphViewer() {
               color: "var(--c-text-main)",
             }}
           >
-            Course Graph
+            UST Course Graph
           </div>
 
           {/* Search Form */}

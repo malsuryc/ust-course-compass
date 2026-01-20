@@ -70,7 +70,7 @@ function CourseNodeComponent({ data, selected }: NodeProps<CourseNodeData>) {
         id="sourceBottom"
         type="source"
         position={Position.Top}
-        style={{ ...handleStyle, left: "40%" }}
+        style={handleStyle}
       />
 
       {/* Left Handle (for exclusions - west zone) */}
@@ -84,7 +84,7 @@ function CourseNodeComponent({ data, selected }: NodeProps<CourseNodeData>) {
         id="targetRight"
         type="target"
         position={Position.Left}
-        style={{ ...handleStyle, top: "40%" }}
+        style={handleStyle}
       />
 
       {/* Right Handle (for corequisites - east zone) */}
@@ -98,7 +98,7 @@ function CourseNodeComponent({ data, selected }: NodeProps<CourseNodeData>) {
         id="targetLeft"
         type="target"
         position={Position.Right}
-        style={{ ...handleStyle, top: "40%" }}
+        style={handleStyle}
       />
 
       {/* Header: Course Code */}
@@ -207,7 +207,7 @@ function CourseNodeComponent({ data, selected }: NodeProps<CourseNodeData>) {
         id="targetBottom"
         type="target"
         position={Position.Bottom}
-        style={{ ...handleStyle, left: "40%" }}
+        style={handleStyle}
       />
     </div>
   );
