@@ -1,0 +1,43 @@
+[
+  {
+    "coursePrefix": "ACCT", // String: Course prefix
+    "courseNumber": "1010", // String: Course number
+    "courseCode": "ACCT1010", // String: Unique course code
+    "academicCareerType": "UG", // String: Academic career type (UG and PG only)
+    "academicCareer": "UGRD", // String: Academic career (UGRD, TPG, RPG)
+    "schoolCode": "SBM", // String: School code
+    "departmentCode": "ACCT", // String: Department code
+    "courseName": "Accounting, Business and Society", // String: Course name
+    "minUnits": "3", // String: Minimum units
+    "maxUnits": "3", // String: Maximum units
+    "courseVector": "", // String: Course vector (e.g., "[3-0-0-3]") (PG only in most cases)
+    "courseVectorPrinted": "[3 Credit(s)]", // String: Course vector printed format (Format may vary) ([3 Credit(s)], [0-3-0-3], etc.)
+    "courseDescription": "Overview of accounting in business...", // String: Course description
+    "previousCourseCodes": [], // Array: Previous course codes (e.g. ["ACCT1001", "ACCT1002"])
+    "alternativeCourseCodes": [], // Array: Alternative course codes (e.g. ["ACCT1003"])
+    "coursePrerequisite": "", // String: Course prerequisite (Format may vary) (e.g., "ACCT 1000 AND (MATH 1010 OR MATH 1020)", "ACCT 5100 OR ACCT 5150 OR Equivalent", "(for non-BIBU students) ACCT 2010" etc.)
+    "courseCorequisite": "", // String: Course corequisite
+    "courseExclusion": "ACCT 2010, CORE 1310", // String: Course exclusion
+    "courseBackground": "", // String: Recommended background (e.g. "College-level calculus is required.")
+    "courseColisted": "", // String: Course colisted
+    "courseCrossCampusEquivalence": "", // String: Course cross-campus equivalence
+    "courseReference": "", // String: Course reference material (e.g. "- P. J. Brockwell and R. A. Davis, Time Series: Theory and Methods")
+    "courseAttributes": [
+      {
+        "courseAttribute": "4Y",
+        "courseAttributeValue": "13",
+        "courseAttributeValueDescription": "Common Core (SA) for 36-credit program"
+      },
+      {
+        "courseAttribute": "CC22",
+        "courseAttributeValue": "28",
+        "courseAttributeValueDescription": "Common Core (SA) for 30-credit prog in 22-24"
+      },
+      {
+        "courseAttribute": "CC25",
+        "courseAttributeValue": "41",
+        "courseAttributeValueDescription": "Common Core (SA) for 30-credit prog fr 25"
+      }
+    ] // Array: Course attributes (can be empty)
+  }
+]
