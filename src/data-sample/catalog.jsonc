@@ -16,7 +16,7 @@
     "previousCourseCodes": [], // Array: Previous course codes (e.g. ["ACCT1001", "ACCT1002"])
     "alternativeCourseCodes": [], // Array: Alternative course codes (e.g. ["ACCT1003"])
     "coursePrerequisite": "", // String: Course prerequisite (Format may vary) (e.g., "ACCT 1000 AND (MATH 1010 OR MATH 1020)", "ACCT 5100 OR ACCT 5150 OR Equivalent", "(for non-BIBU students) ACCT 2010" etc.)
-    "courseCorequisite": "", // String: Course corequisite
+    "courseCorequisite": "", // String: Course corequisite (Format may vary) (e.g. "(COMP 1021 OR COMP 1022P OR COMP 1023) AND (MATH 1003 OR MATH 1014 OR MATH 1020 OR MATH 1024)")
     "courseExclusion": "ACCT 2010, CORE 1310", // String: Course exclusion
     "courseBackground": "", // String: Recommended background (e.g. "College-level calculus is required.")
     "courseColisted": "", // String: Course colisted

@@ -1,26 +1,147 @@
 @import "tailwindcss";
 
+/* ============================================================
+   Blueprint Design System (DESIGN.md)
+   ============================================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Palette */
+  --c-bg-outer: #f8fafc;
+  --c-bg-card: #ffffff;
+  --c-border: #cbd5e1;
+  --c-border-active: #0f172a;
+  /* Text */
+  --c-text-main: #0f172a;
+  --c-text-sub: #64748b;
+  --c-text-inverse: #ffffff;
+  /* Semantic */
+  --c-error: #ef4444;
+  --c-success: #10b981;
+  /* Edge Colors */
+  --c-edge-prereq: #3b82f6;
+  --c-edge-coreq: #8b5cf6;
+  --c-edge-excl: #ef4444;
+  --c-edge-equiv: #6b7280;
+  /* Typography */
+  --font-ui: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), "Menlo", "Consolas", monospace;
+  /* Spacing */
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--c-bg-outer);
+  --color-foreground: var(--c-text-main);
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ============================================================
+   CSS Reset (Blueprint Style)
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-ui);
+  background: var(--c-bg-outer);
+  color: var(--c-text-main);
+}
+
+button,
+input,
+textarea,
+select {
+  border-radius: 0 !important;
+  font-family: inherit;
+}
+
+input,
+textarea,
+select {
+  font-family: var(--font-mono);
+  border: 1px solid var(--c-border);
+  padding: 0.5rem;
+  width: 100%;
+  background: var(--c-bg-card);
+  color: var(--c-text-main);
+}
+
+input:focus,
+textarea:focus {
+  outline: 2px solid var(--c-border-active);
+}
+
+button {
+  cursor: pointer;
+  text-transform: uppercase;
+  font-weight: 600;
+  border: 1px solid var(--c-border-active);
+  background: var(--c-bg-card);
+  color: var(--c-text-main);
+  padding: var(--space-sm) var(--space-md);
+  transition: all 0.1s;
+}
+
+button:hover {
+  background: var(--c-text-main);
+  color: var(--c-text-inverse);
+}
+
+button:active {
+  transform: translate(1px, 1px);
+}
+
+/* ============================================================
+   React Flow Overrides
+   ============================================================ */
+
+.react-flow__node {
+  border-radius: 0 !important;
+}
+
+.react-flow__controls {
+  border-radius: 0 !important;
+  border: 1px solid var(--c-border);
+  box-shadow: none !important;
+}
+
+.react-flow__controls-button {
+  border-radius: 0 !important;
+  border: none;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+
+.react-flow__minimap {
+  border-radius: 0 !important;
+  border: 1px solid var(--c-border);
+}
+
+/* ============================================================
+   Spinner Animation
+   ============================================================ */
+
+@keyframes spinner {
+  0% { content: "[-]"; }
+  25% { content: "[\\]"; }
+  50% { content: "[|]"; }
+  75% { content: "[/]"; }
+  100% { content: "[-]"; }
+}
+
+.spinner::after {
+  content: "[-]";
+  animation: spinner 0.5s steps(1) infinite;
 }
