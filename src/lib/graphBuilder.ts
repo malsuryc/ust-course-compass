@@ -242,7 +242,7 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
             : prereq.hasOr
             ? "OR"
             : undefined,
-          "sourceTop",
+          "sourceBottom",
           "targetBottom"
         );
         traversePrereqs(prereqCode, depth + 1);
@@ -253,7 +253,7 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
           courseCode,
           "prerequisite",
           undefined,
-          "sourceTop",
+          "sourceBottom",
           "targetBottom"
         );
       }
@@ -284,7 +284,7 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
             "prerequisite",
             undefined,
             "sourceBottom",
-            "targetTop"
+            "targetBottom"
           );
           // Recursively find north-north (only north zone connections)
           traversePostreqs(postreqCode, depth + 1);
@@ -298,7 +298,7 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
               "prerequisite",
               undefined,
               "sourceBottom",
-              "targetTop"
+              "targetBottom"
             );
           }
         }
@@ -323,7 +323,7 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
           "exclusion",
           undefined,
           "sourceLeft",
-          "targetRight"
+          "targetLeft"
         );
       }
     }
@@ -343,7 +343,7 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
           "corequisite",
           undefined,
           "sourceRight",
-          "targetLeft"
+          "targetRight"
         );
       }
     }
