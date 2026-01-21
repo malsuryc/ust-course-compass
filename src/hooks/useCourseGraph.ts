@@ -12,7 +12,7 @@ import type { RawCourse, CourseGraph, GraphConfig } from "@/types/graph";
 import { DEFAULT_GRAPH_CONFIG } from "@/types/graph";
 import { normalizeCourseCode } from "@/lib/prerequisiteParser";
 
-const DEFAULT_MASTER_COURSE = "COMP2611";
+const DEFAULT_MASTER_COURSE = "ISOM3540";
 
 export interface UseCourseGraphResult {
   /** Current graph data (nodes & edges) */

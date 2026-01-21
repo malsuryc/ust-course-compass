@@ -327,7 +327,7 @@ function GraphViewerContent() {
               color: "var(--c-text-main)",
             }}
           >
-            UST Course Compass
+            UST Course Compass <span style={{ fontSize: "0.625rem", marginTop: 2, color: "var(--c-text-sub)" }}>BETA</span>
           </div>
 
           {/* Search Form */}
