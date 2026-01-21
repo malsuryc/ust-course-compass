@@ -195,13 +195,33 @@ function GraphViewerContent() {
     setCenter(0, 0, { zoom: 1, duration: 200 });
   }, [setCenter]);
 
+  // Handle node selection (mark node as selected in React Flow)
+  const handleNodeSelect = useCallback(
+    (nodeId: string) => {
+      setNodes((nodes) =>
+        nodes.map((node) => ({
+          ...node,
+          selected: node.id === nodeId,
+        }))
+      );
+    },
+    [setNodes]
+  );
+
   // Update nodes/edges when graph changes
   useEffect(() => {
     if (graph.nodes.length > 0) {
-      setNodes(graph.nodes);
+      const nodesWithSelectCallback = graph.nodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          onNodeSelect: handleNodeSelect,
+        },
+      }));
+      setNodes(nodesWithSelectCallback);
       setEdges(graph.edges as CourseEdge[]);
     }
-  }, [graph, setNodes, setEdges]);
+  }, [graph, setNodes, setEdges, handleNodeSelect]);
 
   // Handle node click - set as new master
   const onNodeClick: NodeMouseHandler = useCallback(

@@ -131,6 +131,8 @@ export interface CourseNodeMetadata {
 /** Combined node data */
 export interface CourseNodeData extends CourseNodeDisplayData {
   meta: CourseNodeMetadata;
+  /** Callback to select this node in React Flow */
+  onNodeSelect?: (nodeId: string) => void;
 }
 
 // ============================================================

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { Handle, Position, type NodeProps } from "reactflow";
 import type { CourseNodeData } from "@/types/graph";
 import { CourseInfoCard } from "./CourseInfoCard";
@@ -19,7 +19,7 @@ const handleStyle = {
  * Blueprint style: rectangular, no shadows, monospace data
  * Supports 4 directional handles (top, bottom, left, right) for semantic zoning
  */
-function CourseNodeComponent({ data, selected }: NodeProps<CourseNodeData>) {
+function CourseNodeComponent({ data, selected, id }: NodeProps<CourseNodeData>) {
   const {
     courseCode,
     courseName,
@@ -30,9 +30,15 @@ function CourseNodeComponent({ data, selected }: NodeProps<CourseNodeData>) {
     isMaster,
     zone,
     meta,
+    onNodeSelect,
   } = data;
 
   const [showInfo, setShowInfo] = useState(false);
+
+  const handleToggleClick = useCallback(() => {
+    onNodeSelect?.(id);
+    setShowInfo((prev) => !prev);
+  }, [onNodeSelect, id]);
 
   return (
     <div
@@ -128,7 +134,7 @@ function CourseNodeComponent({ data, selected }: NodeProps<CourseNodeData>) {
         {isMaster && (
           <button
             className="nodrag"
-            onClick={() => setShowInfo((prev) => !prev)}
+            onClick={handleToggleClick}
             style={{
               background: showInfo ? "var(--c-edge-prereq)" : "var(--c-bg-outer)",
               border: "1px solid var(--c-border)",
