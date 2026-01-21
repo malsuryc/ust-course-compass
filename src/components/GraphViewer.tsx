@@ -9,6 +9,8 @@ import ReactFlow, {
   type Node,
   type NodeMouseHandler,
   MarkerType,
+  ReactFlowProvider,
+  useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
 
@@ -167,7 +169,7 @@ function ConfigPanel({ config, updateConfig, isExpanded, onToggle }: ConfigPanel
  * Graph Viewer Component
  * Blueprint-style course dependency visualization with semantic zoning
  */
-export default function GraphViewer() {
+function GraphViewerContent() {
   const {
     graph,
     masterCourseCode,
@@ -187,6 +189,11 @@ export default function GraphViewer() {
   const [showResults, setShowResults] = useState(false);
   const [configExpanded, setConfigExpanded] = useState(true);
   const reactFlowRef = useRef<HTMLDivElement>(null);
+  const { setCenter } = useReactFlow();
+
+  const resetView = useCallback(() => {
+    setCenter(0, 0, { zoom: 1, duration: 200 });
+  }, [setCenter]);
 
   // Update nodes/edges when graph changes
   useEffect(() => {
@@ -202,8 +209,9 @@ export default function GraphViewer() {
       setMasterCourse(node.id);
       setSearchInput(node.id);
       setShowResults(false);
+      resetView();
     },
-    [setMasterCourse]
+    [setMasterCourse, resetView]
   );
 
   // Handle search input change
@@ -225,9 +233,10 @@ export default function GraphViewer() {
       if (searchInput) {
         setMasterCourse(searchInput);
         setShowResults(false);
+        resetView();
       }
     },
-    [searchInput, setMasterCourse]
+    [searchInput, setMasterCourse, resetView]
   );
 
   // Handle result selection
@@ -236,8 +245,9 @@ export default function GraphViewer() {
       setSearchInput(code);
       setMasterCourse(code);
       setShowResults(false);
+      resetView();
     },
-    [setMasterCourse]
+    [setMasterCourse, resetView]
   );
 
   // Loading state
@@ -438,8 +448,8 @@ export default function GraphViewer() {
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           defaultEdgeOptions={defaultEdgeOptions}
-          fitView
-          fitViewOptions={{ padding: 0.2 }}
+          // fitView
+          // fitViewOptions={{ padding: 0.2 }}
           minZoom={0.1}
           maxZoom={2}
           proOptions={{ hideAttribution: true }}
@@ -495,5 +505,13 @@ export default function GraphViewer() {
         </ReactFlow>
       </div>
     </div>
+  );
+}
+
+export default function GraphViewer() {
+  return (
+    <ReactFlowProvider>
+      <GraphViewerContent />
+    </ReactFlowProvider>
   );
 }
