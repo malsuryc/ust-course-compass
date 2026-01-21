@@ -51,6 +51,7 @@ export const EDGE_STYLES: Record<
     strokeWidth: number;
     animated?: boolean;
     markerEnd?: string;
+    markerStart?: string;
   }
 > = {
   prerequisite: {
@@ -64,6 +65,7 @@ export const EDGE_STYLES: Record<
     strokeDasharray: "5,5",
     strokeWidth: 2,
     markerEnd: "arrowclosed",
+    markerStart: "arrowclosed", // For mutual corequisites (bidirectional)
   },
   exclusion: {
     stroke: "#ef4444", // red-500
@@ -133,6 +135,8 @@ export interface CourseNodeData extends CourseNodeDisplayData {
   meta: CourseNodeMetadata;
   /** Callback to select this node in React Flow */
   onNodeSelect?: (nodeId: string) => void;
+  /** For mutual corequisites - the course code this node is mutually connected to */
+  mutualCorequisiteOf?: string;
 }
 
 // ============================================================
@@ -144,6 +148,7 @@ export type CourseNode = Node<CourseNodeData, "course">;
 export interface CourseEdgeData {
   edgeType: CourseEdgeType;
   label?: string; // "AND", "OR" for complex prerequisites
+  bidirectional?: boolean; // For mutual corequisites - arrows on both ends
 }
 
 export type CourseEdge = Edge<CourseEdgeData>;

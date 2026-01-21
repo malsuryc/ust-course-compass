@@ -55,10 +55,12 @@ function CourseEdgeComponent({
   targetY,
   data,
   markerEnd,
+  markerStart,
 }: EdgeProps<CourseEdgeData>) {
   const edgeType = data?.edgeType || "prerequisite";
   const config = EDGE_CONFIG[edgeType];
   const label = data?.label;
+  const isBidirectional = data?.bidirectional;
 
   const [edgePath, labelX, labelY] = getStraightPath({
     sourceX,
@@ -73,6 +75,7 @@ function CourseEdgeComponent({
         id={id}
         path={edgePath}
         markerEnd={markerEnd}
+        markerStart={isBidirectional ? markerStart : undefined}
         style={{
           stroke: config.stroke,
           strokeWidth: config.strokeWidth,

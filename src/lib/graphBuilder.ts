@@ -58,7 +58,8 @@ function rawCourseToNodeData(
   course: RawCourse,
   zone: CourseZone,
   depth: number,
-  isMaster: boolean = false
+  isMaster: boolean = false,
+  mutualCorequisiteOf?: string
 ): CourseNodeData {
   return {
     // Display data (minimal)
@@ -71,6 +72,7 @@ function rawCourseToNodeData(
     zone,
     depth,
     isMaster,
+    mutualCorequisiteOf,
 
     // Metadata (for filtering/searching)
     meta: {
@@ -104,6 +106,24 @@ function createEdgeId(
   type: CourseEdgeType
 ): string {
   return `${source}->${target}:${type}`;
+}
+
+/**
+ * Checks if two courses have mutual corequisites (A has B as coreq, B has A as coreq).
+ */
+function areMutualCorequisites(
+  codeA: string,
+  codeB: string,
+  courseMap: Map<string, RawCourse>
+): boolean {
+  const courseA = courseMap.get(codeA);
+  const courseB = courseMap.get(codeB);
+  if (!courseA || !courseB) return false;
+
+  const coreqsA = parsePrerequisite(courseA.courseCorequisite).courseCodes;
+  const coreqsB = parsePrerequisite(courseB.courseCorequisite).courseCodes;
+
+  return coreqsA.includes(codeB) && coreqsB.includes(codeA);
 }
 
 // ============================================================
@@ -174,7 +194,8 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
     course: RawCourse,
     zone: CourseZone,
     depth: number,
-    isMaster: boolean = false
+    isMaster: boolean = false,
+    mutualCorequisiteOf?: string
   ): CourseNode => {
     const code = normalizeCourseCode(course.courseCode);
     if (!nodesMap.has(code)) {
@@ -182,7 +203,7 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
         id: code,
         type: "course",
         position: { x: 0, y: 0 }, // Will be set by zoned layout
-        data: rawCourseToNodeData(course, zone, depth, isMaster),
+        data: rawCourseToNodeData(course, zone, depth, isMaster, mutualCorequisiteOf),
       };
       nodesMap.set(code, node);
     }
@@ -196,7 +217,8 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
     type: CourseEdgeType,
     label?: string,
     sourceHandle?: string,
-    targetHandle?: string
+    targetHandle?: string,
+    bidirectional?: boolean
   ) => {
     const edgeId = createEdgeId(source, target, type);
     if (!edgesMap.has(edgeId)) {
@@ -207,7 +229,7 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
         type: "default",
         sourceHandle,
         targetHandle,
-        data: { edgeType: type, label },
+        data: { edgeType: type, label, bidirectional },
       };
       edgesMap.set(edgeId, edge);
     }
@@ -265,31 +287,60 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
       for (const coreqCode of coreq.courseCodes) {
         const coreqCourse = courseMap.get(coreqCode);
         if (coreqCourse && !nodesMap.has(coreqCode)) {
-          addNode(coreqCourse, "south", depth);
-          // Edge: coreq -> course (bottom to top, corequisite type)
-          addEdge(
-            coreqCode,
-            courseCode,
-            "corequisite",
-            coreq.hasAnd && coreq.hasOr
-              ? "AND/OR"
-              : coreq.hasOr
-              ? "OR"
-              : undefined,
-            "sourceBottom",
-            "targetBottom"
-          );
+          const isMutual = areMutualCorequisites(coreqCode, courseCode, courseMap);
+          if (isMutual) {
+            addNode(coreqCourse, "east", depth, false, courseCode);
+            addEdge(
+              coreqCode,
+              courseCode,
+              "corequisite",
+              coreq.hasAnd && coreq.hasOr
+                ? "AND/OR"
+                : coreq.hasOr
+                ? "OR"
+                : undefined,
+              "sourceLeft",
+              "targetLeft",
+              true
+            );
+          } else {
+            addNode(coreqCourse, "south", depth);
+            addEdge(
+              coreqCode,
+              courseCode,
+              "corequisite",
+              coreq.hasAnd && coreq.hasOr
+                ? "AND/OR"
+                : coreq.hasOr
+                ? "OR"
+                : undefined,
+              "sourceBottom",
+              "targetBottom"
+            );
+          }
           traversePrereqsAndCoreqs(coreqCode, depth + 1);
         } else if (coreqCourse && nodesMap.has(coreqCode)) {
-          // Node already exists, just add edge
-          addEdge(
-            coreqCode,
-            courseCode,
-            "corequisite",
-            undefined,
-            "sourceBottom",
-            "targetBottom"
-          );
+          const isMutual = areMutualCorequisites(coreqCode, courseCode, courseMap);
+          if (isMutual) {
+            addEdge(
+              coreqCode,
+              courseCode,
+              "corequisite",
+              undefined,
+              "sourceRight",
+              "targetRight",
+              true
+            );
+          } else {
+            addEdge(
+              coreqCode,
+              courseCode,
+              "corequisite",
+              undefined,
+              "sourceBottom",
+              "targetBottom"
+            );
+          }
         }
       }
     }
@@ -490,13 +541,34 @@ export function applyZonedLayout(graph: CourseGraph): CourseGraph {
     const x = NODE_WIDTH / 2 + ZONE_PADDING;
 
     eastNodes.forEach((node, index) => {
-      positionedNodes.push({
-        ...node,
-        position: {
-          x: x,
-          y: startY + index * (NODE_HEIGHT + HORIZONTAL_GAP),
-        },
-      });
+      if (node.data.mutualCorequisiteOf) {
+        const partnerNode = nodes.find(n => n.id === node.data.mutualCorequisiteOf);
+        if (partnerNode) {
+          positionedNodes.push({
+            ...node,
+            position: {
+              x: partnerNode.position.x + NODE_WIDTH + ZONE_PADDING,
+              y: partnerNode.position.y,
+            },
+          });
+        } else {
+          positionedNodes.push({
+            ...node,
+            position: {
+              x: x,
+              y: startY + index * (NODE_HEIGHT + HORIZONTAL_GAP),
+            },
+          });
+        }
+      } else {
+        positionedNodes.push({
+          ...node,
+          position: {
+            x: x,
+            y: startY + index * (NODE_HEIGHT + HORIZONTAL_GAP),
+          },
+        });
+      }
     });
   }
 
