@@ -216,9 +216,9 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
   // ========== Add Master Node (Center) ==========
   addNode(targetCourse, "center", 0, true);
 
-  // ========== South Zone: Prerequisites ==========
+  // ========== South Zone: Prerequisites & Corequisites ==========
   const visitedSouth = new Set<string>();
-  const traversePrereqs = (courseCode: string, depth: number) => {
+  const traversePrereqsAndCoreqs = (courseCode: string, depth: number) => {
     if (depth > config.maxPrereqDepth || visitedSouth.has(courseCode)) {
       return;
     }
@@ -227,6 +227,7 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
     const course = courseMap.get(courseCode);
     if (!course) return;
 
+    // Process prerequisites
     const prereq = parsePrerequisite(course.coursePrerequisite);
     for (const prereqCode of prereq.courseCodes) {
       const prereqCourse = courseMap.get(prereqCode);
@@ -245,7 +246,7 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
           "sourceBottom",
           "targetBottom"
         );
-        traversePrereqs(prereqCode, depth + 1);
+        traversePrereqsAndCoreqs(prereqCode, depth + 1);
       } else if (prereqCourse && nodesMap.has(prereqCode)) {
         // Node already exists, just add edge
         addEdge(
@@ -258,8 +259,42 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
         );
       }
     }
+
+    if (config.showCorequisites) {
+      const coreq = parsePrerequisite(course.courseCorequisite);
+      for (const coreqCode of coreq.courseCodes) {
+        const coreqCourse = courseMap.get(coreqCode);
+        if (coreqCourse && !nodesMap.has(coreqCode)) {
+          addNode(coreqCourse, "south", depth);
+          // Edge: coreq -> course (bottom to top, corequisite type)
+          addEdge(
+            coreqCode,
+            courseCode,
+            "corequisite",
+            coreq.hasAnd && coreq.hasOr
+              ? "AND/OR"
+              : coreq.hasOr
+              ? "OR"
+              : undefined,
+            "sourceBottom",
+            "targetBottom"
+          );
+          traversePrereqsAndCoreqs(coreqCode, depth + 1);
+        } else if (coreqCourse && nodesMap.has(coreqCode)) {
+          // Node already exists, just add edge
+          addEdge(
+            coreqCode,
+            courseCode,
+            "corequisite",
+            undefined,
+            "sourceBottom",
+            "targetBottom"
+          );
+        }
+      }
+    }
   };
-  traversePrereqs(normalizedTarget, 1);
+  traversePrereqsAndCoreqs(normalizedTarget, 1);
 
   // ========== North Zone: Post-requisites ==========
   if (reversePrereqMap) {
@@ -324,26 +359,6 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
           undefined,
           "sourceLeft",
           "targetLeft"
-        );
-      }
-    }
-  }
-
-  // ========== East Zone: Corequisites ==========
-  if (config.showCorequisites) {
-    const coreqs = parseCommaSeparatedCourses(targetCourse.courseCorequisite);
-    for (const coreqCode of coreqs) {
-      const coreqCourse = courseMap.get(coreqCode);
-      if (coreqCourse && !nodesMap.has(coreqCode)) {
-        addNode(coreqCourse, "east", 1);
-        // Corequisite edge (bidirectional binding - use right handles)
-        addEdge(
-          normalizedTarget,
-          coreqCode,
-          "corequisite",
-          undefined,
-          "sourceRight",
-          "targetRight"
         );
       }
     }
