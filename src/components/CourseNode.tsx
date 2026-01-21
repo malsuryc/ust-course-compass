@@ -31,9 +31,10 @@ function CourseNodeComponent({ data, selected, id }: NodeProps<CourseNodeData>) 
     zone,
     meta,
     onNodeSelect,
+    infoCardOpenByDefault,
   } = data;
 
-  const [showInfo, setShowInfo] = useState(false);
+  const [showInfo, setShowInfo] = useState(infoCardOpenByDefault ?? false);
 
   const handleToggleClick = useCallback(() => {
     onNodeSelect?.(id);
