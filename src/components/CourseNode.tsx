@@ -1,8 +1,9 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import { Handle, Position, type NodeProps } from "reactflow";
 import type { CourseNodeData } from "@/types/graph";
+import { CourseInfoCard } from "./CourseInfoCard";
 
 // Shared handle style
 const handleStyle = {
@@ -28,11 +29,15 @@ function CourseNodeComponent({ data, selected }: NodeProps<CourseNodeData>) {
     careerType,
     isMaster,
     zone,
+    meta,
   } = data;
+
+  const [showInfo, setShowInfo] = useState(false);
 
   return (
     <div
       style={{
+        position: "relative",
         width: 200,
         minHeight: 80,
         background: isMaster ? "var(--c-bg-outer)" : "var(--c-bg-card)",
@@ -101,17 +106,51 @@ function CourseNodeComponent({ data, selected }: NodeProps<CourseNodeData>) {
         style={handleStyle}
       />
 
-      {/* Header: Course Code */}
+      {/* Header: Course Code + Info Button */}
       <div
         style={{
-          fontFamily: "var(--font-mono)",
-          fontWeight: 700,
-          fontSize: "0.875rem",
-          color: "var(--c-text-main)",
-          letterSpacing: "0.025em",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
         }}
       >
-        {courseCode}
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontWeight: 700,
+            fontSize: "0.875rem",
+            color: "var(--c-text-main)",
+            letterSpacing: "0.025em",
+          }}
+        >
+          {courseCode}
+        </div>
+        {isMaster && (
+          <button
+            className="nodrag"
+            onClick={() => setShowInfo((prev) => !prev)}
+            style={{
+              background: showInfo ? "var(--c-edge-prereq)" : "var(--c-bg-outer)",
+              border: "1px solid var(--c-border)",
+              borderRadius: 0,
+              width: 20,
+              height: 20,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.75rem",
+              fontWeight: 700,
+              color: showInfo ? "var(--c-text-inverse)" : "var(--c-text-main)",
+              padding: 0,
+              lineHeight: 1,
+            }}
+            title={showInfo ? "Hide course info" : "Show course info"}
+          >
+            i
+          </button>
+        )}
       </div>
 
       {/* Course Name (truncated) */}
@@ -209,6 +248,16 @@ function CourseNodeComponent({ data, selected }: NodeProps<CourseNodeData>) {
         position={Position.Bottom}
         style={handleStyle}
       />
+
+      {/* Info Card (Master node only) */}
+      {isMaster && showInfo && (
+        <CourseInfoCard
+          meta={meta}
+          courseCode={courseCode}
+          courseName={courseName}
+          onClose={() => setShowInfo(false)}
+        />
+      )}
     </div>
   );
 }
