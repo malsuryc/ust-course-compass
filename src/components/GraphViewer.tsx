@@ -509,16 +509,13 @@ function GraphViewerContent() {
                 S↓
                 <span style={{ width: 12, height: 2, background: "var(--c-edge-prereq)" }} />
                 PREREQ
+                <span style={{ width: 12, height: 0, borderTop: "2px dotted var(--c-edge-coreq)" }} />
+                COREQ
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 W←
                 <span style={{ width: 12, height: 0, borderTop: "2px dotted var(--c-edge-excl)" }} />
                 EXCL
-              </span>
-              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                E→
-                <span style={{ width: 12, height: 0, borderTop: "2px dotted var(--c-edge-coreq)" }} />
-                COREQ
               </span>
             </div>
           </div>
