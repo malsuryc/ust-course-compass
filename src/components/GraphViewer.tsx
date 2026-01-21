@@ -448,8 +448,8 @@ function GraphViewerContent() {
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           defaultEdgeOptions={defaultEdgeOptions}
-          // fitView
-          // fitViewOptions={{ padding: 0.2 }}
+          fitView
+          fitViewOptions={{ padding: 0.2 }}
           minZoom={0.1}
           maxZoom={2}
           proOptions={{ hideAttribution: true }}
