@@ -465,14 +465,6 @@ export function applyZonedLayout(graph: CourseGraph): CourseGraph {
 
   const positionedNodes: CourseNode[] = [];
 
-  // ========== Center Zone (Master) ==========
-  for (const node of nodesByZone.center) {
-    positionedNodes.push({
-      ...node,
-      position: { x: -NODE_WIDTH / 2, y: -NODE_HEIGHT / 2 },
-    });
-  }
-
   // ========== South Zone (Prerequisites - below center) ==========
   const southByDepth = groupByDepth(nodesByZone.south);
   const southDepths = Array.from(southByDepth.keys()).sort((a, b) => a - b);
@@ -573,6 +565,14 @@ export function applyZonedLayout(graph: CourseGraph): CourseGraph {
         });
       }
     }
+  }
+
+  // ========== Center Zone (Master) - Add LAST for highest z-index ==========
+  for (const node of nodesByZone.center) {
+    positionedNodes.push({
+      ...node,
+      position: { x: -NODE_WIDTH / 2, y: -NODE_HEIGHT / 2 },
+    });
   }
 
   return { nodes: positionedNodes, edges };

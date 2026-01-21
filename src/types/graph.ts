@@ -24,6 +24,8 @@ export interface GraphConfig {
   showExclusions: boolean;
   /** Show corequisite zone (east) */
   showCorequisites: boolean;
+  /** Show info card by default for master node */
+  showInfoByDefault: boolean;
 }
 
 export const DEFAULT_GRAPH_CONFIG: GraphConfig = {
@@ -31,6 +33,7 @@ export const DEFAULT_GRAPH_CONFIG: GraphConfig = {
   maxPostreqDepth: 2,
   showExclusions: true,
   showCorequisites: true,
+  showInfoByDefault: true,
 };
 
 // ============================================================
@@ -137,6 +140,8 @@ export interface CourseNodeData extends CourseNodeDisplayData {
   onNodeSelect?: (nodeId: string) => void;
   /** For mutual corequisites - the course code this node is mutually connected to */
   mutualCorequisiteOf?: string;
+  /** Initial state for info card visibility (only used for master node) */
+  infoCardOpenByDefault?: boolean;
 }
 
 // ============================================================

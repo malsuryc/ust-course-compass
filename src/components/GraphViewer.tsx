@@ -158,6 +158,15 @@ function ConfigPanel({ config, updateConfig, isExpanded, onToggle }: ConfigPanel
               />
               <span style={labelStyle}>SHOW COREQUISITES</span>
             </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={config.showInfoByDefault}
+                onChange={(e) => updateConfig("showInfoByDefault", e.target.checked)}
+                style={checkboxStyle}
+              />
+              <span style={labelStyle}>SHOW INFO BY DEFAULT</span>
+            </label>
           </div>
         </>
       )}
@@ -192,8 +201,13 @@ function GraphViewerContent() {
   const { setCenter } = useReactFlow();
 
   const resetView = useCallback(() => {
-    setCenter(0, 0, { zoom: 1, duration: 200 });
-  }, [setCenter]);
+    const masterNode = nodes.find((n) => n.id === masterCourseCode);
+    if (masterNode) {
+      setCenter(masterNode.position.x, masterNode.position.y, { zoom: 1, duration: 200 });
+    } else {
+      setCenter(0, 0, { zoom: 1, duration: 200 });
+    }
+  }, [setCenter, nodes, masterCourseCode]);
 
   // Handle node selection (mark node as selected in React Flow)
   const handleNodeSelect = useCallback(
@@ -216,12 +230,13 @@ function GraphViewerContent() {
         data: {
           ...node.data,
           onNodeSelect: handleNodeSelect,
+          infoCardOpenByDefault: config.showInfoByDefault,
         },
       }));
       setNodes(nodesWithSelectCallback);
       setEdges(graph.edges as CourseEdge[]);
     }
-  }, [graph, setNodes, setEdges, handleNodeSelect]);
+  }, [graph, setNodes, setEdges, handleNodeSelect, config.showInfoByDefault]);
 
   // Handle node click - set as new master
   const onNodeClick: NodeMouseHandler = useCallback(
