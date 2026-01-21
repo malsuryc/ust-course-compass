@@ -536,22 +536,33 @@ export function applyZonedLayout(graph: CourseGraph): CourseGraph {
   // ========== East Zone (Corequisites - right of center) ==========
   const eastNodes = nodesByZone.east;
   if (eastNodes.length > 0) {
-    const colHeight = eastNodes.length * (NODE_HEIGHT + HORIZONTAL_GAP) - HORIZONTAL_GAP;
-    const startY = -colHeight / 2;
-    const x = NODE_WIDTH / 2 + ZONE_PADDING;
+    const nodesByPartner: Record<string, CourseNode[]> = { "": [] };
+    for (const node of eastNodes) {
+      const partner = node.data.mutualCorequisiteOf || "";
+      if (!nodesByPartner[partner]) nodesByPartner[partner] = [];
+      nodesByPartner[partner].push(node);
+    }
 
-    eastNodes.forEach((node, index) => {
-      if (node.data.mutualCorequisiteOf) {
-        const partnerNode = nodes.find(n => n.id === node.data.mutualCorequisiteOf);
+    for (const [partnerId, groupNodes] of Object.entries(nodesByPartner)) {
+      if (partnerId) {
+        const partnerNode = positionedNodes.find(n => n.id === partnerId);
         if (partnerNode) {
-          positionedNodes.push({
-            ...node,
-            position: {
-              x: partnerNode.position.x + NODE_WIDTH + ZONE_PADDING,
-              y: partnerNode.position.y,
-            },
+          const startX = partnerNode.position.x + NODE_WIDTH + ZONE_PADDING;
+          groupNodes.forEach((node, index) => {
+            positionedNodes.push({
+              ...node,
+              position: {
+                x: startX + index * (NODE_WIDTH + HORIZONTAL_GAP),
+                y: partnerNode.position.y,
+              },
+            });
           });
-        } else {
+        }
+      } else {
+        const colHeight = groupNodes.length * (NODE_HEIGHT + HORIZONTAL_GAP) - HORIZONTAL_GAP;
+        const startY = -colHeight / 2;
+        const x = NODE_WIDTH / 2 + ZONE_PADDING;
+        groupNodes.forEach((node, index) => {
           positionedNodes.push({
             ...node,
             position: {
@@ -559,17 +570,9 @@ export function applyZonedLayout(graph: CourseGraph): CourseGraph {
               y: startY + index * (NODE_HEIGHT + HORIZONTAL_GAP),
             },
           });
-        }
-      } else {
-        positionedNodes.push({
-          ...node,
-          position: {
-            x: x,
-            y: startY + index * (NODE_HEIGHT + HORIZONTAL_GAP),
-          },
         });
       }
-    });
+    }
   }
 
   return { nodes: positionedNodes, edges };
