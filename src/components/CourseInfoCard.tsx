@@ -41,7 +41,7 @@ export function CourseInfoCard({
 
   return (
     <div
-      className="nodrag nowheel"
+      className="nowheel"
       style={{
         position: "absolute",
         left: "calc(100% + 12px)",
