@@ -20,8 +20,6 @@ export function CourseInfoCard({
   onClose,
 }: CourseInfoCardProps) {
   const {
-    coursePrefix,
-    courseNumber,
     academicCareer,
     schoolCode,
     courseDescription,
@@ -118,9 +116,7 @@ export function CourseInfoCard({
         }}
       >
         {/* Basic Info */}
-        <InfoSection title="Basic Info">
-          <InfoRow label="Prefix" value={coursePrefix} />
-          <InfoRow label="Number" value={courseNumber} />
+        <InfoSection title="Info">
           <InfoRow label="Career" value={academicCareer} />
           <InfoRow label="School" value={schoolCode} />
           <InfoRow label="Vector" value={courseVectorPrinted || courseVector} />

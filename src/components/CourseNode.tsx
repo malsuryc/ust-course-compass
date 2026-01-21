@@ -145,6 +145,7 @@ function CourseNodeComponent({ data, selected }: NodeProps<CourseNodeData>) {
               color: showInfo ? "var(--c-text-inverse)" : "var(--c-text-main)",
               padding: 0,
               lineHeight: 1,
+              textTransform: "none",
             }}
             title={showInfo ? "Hide course info" : "Show course info"}
           >

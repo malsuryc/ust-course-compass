@@ -9,6 +9,8 @@ import ReactFlow, {
   type Node,
   type NodeMouseHandler,
   MarkerType,
+  ReactFlowProvider,
+  useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
 
@@ -98,8 +100,8 @@ function ConfigPanel({ config, updateConfig, isExpanded, onToggle }: ConfigPanel
           ...labelStyle,
         }}
       >
-        <span>⚙ CONFIG</span>
-        <span style={{ fontSize: "0.75rem" }}>{isExpanded ? "▼" : "▶"}</span>
+        <span>CONFIG</span>
+        <span style={{ fontSize: "0.75em" }}>{isExpanded ? "▼" : "▶"}</span>
       </div>
 
       {isExpanded && (
@@ -167,7 +169,7 @@ function ConfigPanel({ config, updateConfig, isExpanded, onToggle }: ConfigPanel
  * Graph Viewer Component
  * Blueprint-style course dependency visualization with semantic zoning
  */
-export default function GraphViewer() {
+function GraphViewerContent() {
   const {
     graph,
     masterCourseCode,
@@ -187,6 +189,11 @@ export default function GraphViewer() {
   const [showResults, setShowResults] = useState(false);
   const [configExpanded, setConfigExpanded] = useState(true);
   const reactFlowRef = useRef<HTMLDivElement>(null);
+  const { setCenter } = useReactFlow();
+
+  const resetView = useCallback(() => {
+    setCenter(0, 0, { zoom: 1, duration: 200 });
+  }, [setCenter]);
 
   // Update nodes/edges when graph changes
   useEffect(() => {
@@ -202,8 +209,9 @@ export default function GraphViewer() {
       setMasterCourse(node.id);
       setSearchInput(node.id);
       setShowResults(false);
+      resetView();
     },
-    [setMasterCourse]
+    [setMasterCourse, resetView]
   );
 
   // Handle search input change
@@ -225,9 +233,10 @@ export default function GraphViewer() {
       if (searchInput) {
         setMasterCourse(searchInput);
         setShowResults(false);
+        resetView();
       }
     },
-    [searchInput, setMasterCourse]
+    [searchInput, setMasterCourse, resetView]
   );
 
   // Handle result selection
@@ -236,8 +245,9 @@ export default function GraphViewer() {
       setSearchInput(code);
       setMasterCourse(code);
       setShowResults(false);
+      resetView();
     },
-    [setMasterCourse]
+    [setMasterCourse, resetView]
   );
 
   // Loading state
@@ -410,84 +420,21 @@ export default function GraphViewer() {
           onToggle={() => setConfigExpanded(!configExpanded)}
         />
 
-        {/* Legend */}
-        <div
+        <a
+          href="https://github.com/malsuryc/ust-course-compass"
+          target="_blank"
+          rel="noopener noreferrer"
           style={{
-            marginLeft: "auto",
-            display: "flex",
-            flexDirection: "column",
-            gap: "4px",
             fontFamily: "var(--font-mono)",
             fontSize: "0.625rem",
             color: "var(--c-text-sub)",
+            textDecoration: "none",
+            marginLeft: "auto",
+            alignSelf: "flex-start",
           }}
         >
-          <div style={{ display: "flex", gap: "var(--space-md)" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span
-                style={{
-                  width: 16,
-                  height: 2,
-                  background: "var(--c-edge-prereq)",
-                }}
-              />
-              PREREQ
-            </span>
-            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span
-                style={{
-                  width: 16,
-                  height: 0,
-                  borderTop: "2px dashed var(--c-edge-coreq)",
-                }}
-              />
-              COREQ
-            </span>
-          </div>
-          <div style={{ display: "flex", gap: "var(--space-md)" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span
-                style={{
-                  width: 16,
-                  height: 0,
-                  borderTop: "2px dashed var(--c-edge-excl)",
-                }}
-              />
-              EXCL
-            </span>
-            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span
-                style={{
-                  width: 16,
-                  height: 0,
-                  borderTop: "2px dotted var(--c-edge-equiv)",
-                }}
-              />
-              EQUIV
-            </span>
-          </div>
-
-          {/* Zone Labels */}
-          <div style={{ marginTop: 4, borderTop: "1px solid var(--c-border)", paddingTop: 4 }}>
-            <span style={{ opacity: 0.7 }}>
-              ↑N:POST · ↓S:PRE · ←W:EXCL · →E:COREQ
-            </span>
-          </div>
-
-          <a
-            href="https://github.com/malsuryc/ust-course-compass"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "0.625rem",
-              color: "var(--c-text-sub)",
-              textDecoration: "none",
-            }}
-          >
-            [Github]
-          </a>
-        </div>
+          [Github]
+        </a>
       </div>
 
       {/* React Flow Canvas */}
@@ -514,8 +461,57 @@ export default function GraphViewer() {
             }}
           />
           <Background color="var(--c-border)" gap={20} />
+
+          <div
+            style={{
+              position: "absolute",
+              bottom: 16,
+              right: 16,
+              padding: "8px 12px",
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.625rem",
+              color: "var(--c-text-sub)",
+              opacity: 0.5,
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
+              pointerEvents: "none",
+              userSelect: "none",
+            }}
+          >
+            <div style={{ display: "flex", gap: "12px" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                N↑
+                <span style={{ width: 12, height: 2, background: "var(--c-edge-prereq)" }} />
+                POSTREQ
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                S↓
+                <span style={{ width: 12, height: 2, background: "var(--c-edge-prereq)" }} />
+                PREREQ
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                W←
+                <span style={{ width: 12, height: 0, borderTop: "2px dotted var(--c-edge-excl)" }} />
+                EXCL
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                E→
+                <span style={{ width: 12, height: 0, borderTop: "2px dotted var(--c-edge-coreq)" }} />
+                COREQ
+              </span>
+            </div>
+          </div>
         </ReactFlow>
       </div>
     </div>
+  );
+}
+
+export default function GraphViewer() {
+  return (
+    <ReactFlowProvider>
+      <GraphViewerContent />
+    </ReactFlowProvider>
   );
 }
