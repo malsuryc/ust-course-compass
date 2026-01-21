@@ -201,8 +201,13 @@ function GraphViewerContent() {
   const { setCenter } = useReactFlow();
 
   const resetView = useCallback(() => {
-    setCenter(0, 0, { zoom: 1, duration: 200 });
-  }, [setCenter]);
+    const masterNode = nodes.find((n) => n.id === masterCourseCode);
+    if (masterNode) {
+      setCenter(masterNode.position.x, masterNode.position.y, { zoom: 1, duration: 200 });
+    } else {
+      setCenter(0, 0, { zoom: 1, duration: 200 });
+    }
+  }, [setCenter, nodes, masterCourseCode]);
 
   // Handle node selection (mark node as selected in React Flow)
   const handleNodeSelect = useCallback(
