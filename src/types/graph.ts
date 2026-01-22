@@ -33,7 +33,7 @@ export const DEFAULT_GRAPH_CONFIG: GraphConfig = {
   maxPostreqDepth: 2,
   showExclusions: true,
   showCorequisites: true,
-  showInfoByDefault: false,
+  showInfoByDefault: true,
 };
 
 // ============================================================
