@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useState, useEffect } from "react";
 import { Handle, Position, type NodeProps } from "reactflow";
 import type { CourseNodeData } from "@/types/graph";
 import { CourseInfoCard } from "./CourseInfoCard";
@@ -35,6 +35,12 @@ function CourseNodeComponent({ data, selected, id }: NodeProps<CourseNodeData>) 
   } = data;
 
   const [showInfo, setShowInfo] = useState(infoCardOpenByDefault ?? false);
+
+  useEffect(() => {
+    if (infoCardOpenByDefault !== undefined) {
+      setShowInfo(infoCardOpenByDefault);
+    }
+  }, [infoCardOpenByDefault]);
 
   const handleToggleClick = useCallback(() => {
     onNodeSelect?.(id);
