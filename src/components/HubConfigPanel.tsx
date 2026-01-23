@@ -6,16 +6,14 @@ interface HubConfigPanelProps {
   config: GraphConfig;
   updateConfig: <K extends keyof GraphConfig>(key: K, value: GraphConfig[K]) => void;
   resetConfig: () => void;
-  isExpanded: boolean;
-  onToggle: () => void;
+  onClose: () => void;
 }
 
 export function HubConfigPanel({
   config,
   updateConfig,
   resetConfig,
-  isExpanded,
-  onToggle,
+  onClose,
 }: HubConfigPanelProps) {
   const sliderStyle: React.CSSProperties = {
     width: "100%",
@@ -45,112 +43,132 @@ export function HubConfigPanel({
     cursor: "pointer",
   };
 
+  const cardStyle: React.CSSProperties = {
+    background: "var(--c-bg-card)",
+    border: "1px solid var(--c-border-active)",
+    padding: "var(--space-md)",
+    fontFamily: "var(--font-mono)",
+    width: "280px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "var(--space-md)",
+  };
+
+  const headerStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderBottom: "1px solid var(--c-border)",
+    paddingBottom: "var(--space-sm)",
+  };
+
   return (
-    <div
-      style={{
-        background: "var(--c-bg-card)",
-        border: "1px solid var(--c-border)",
-        padding: "var(--space-sm)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--space-sm)",
-        minWidth: isExpanded ? 200 : "auto",
-      }}
-    >
-      <div
-        onClick={onToggle}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          cursor: "pointer",
-          ...labelStyle,
-        }}
-      >
-        <span>CONFIG</span>
-        <span style={{ fontSize: "0.75em" }}>{isExpanded ? "▼" : "▶"}</span>
+    <div style={cardStyle}>
+      <div style={headerStyle}>
+        <span style={{ ...labelStyle, fontSize: "0.75rem", color: "var(--c-text-main)" }}>
+          CONFIGURATION
+        </span>
+        <button
+          onClick={onClose}
+          style={{
+            background: "none",
+            border: "none",
+            color: "var(--c-text-sub)",
+            cursor: "pointer",
+            fontSize: "1rem",
+            padding: 0,
+            lineHeight: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          aria-label="Close configuration"
+        >
+          ✕
+        </button>
       </div>
 
-      {isExpanded && (
-        <>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={labelStyle}>PREREQ DEPTH</span>
-              <span style={valueStyle}>{config.maxPrereqDepth}</span>
-            </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={labelStyle}>PREREQ DEPTH</span>
+            <span style={valueStyle}>{config.maxPrereqDepth}</span>
+          </div>
+          <input
+            type="range"
+            min={1}
+            max={6}
+            value={config.maxPrereqDepth}
+            onChange={(e) => updateConfig("maxPrereqDepth", parseInt(e.target.value))}
+            style={sliderStyle}
+          />
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={labelStyle}>POSTREQ DEPTH</span>
+            <span style={valueStyle}>{config.maxPostreqDepth}</span>
+          </div>
+          <input
+            type="range"
+            min={1}
+            max={6}
+            value={config.maxPostreqDepth}
+            onChange={(e) => updateConfig("maxPostreqDepth", parseInt(e.target.value))}
+            style={sliderStyle}
+          />
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
             <input
-              type="range"
-              min={1}
-              max={6}
-              value={config.maxPrereqDepth}
-              onChange={(e) => updateConfig("maxPrereqDepth", parseInt(e.target.value))}
-              style={sliderStyle}
+              type="checkbox"
+              checked={config.showExclusions}
+              onChange={(e) => updateConfig("showExclusions", e.target.checked)}
+              style={checkboxStyle}
             />
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={labelStyle}>POSTREQ DEPTH</span>
-              <span style={valueStyle}>{config.maxPostreqDepth}</span>
-            </div>
+            <span style={labelStyle}>SHOW EXCLUSIONS</span>
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
             <input
-              type="range"
-              min={1}
-              max={6}
-              value={config.maxPostreqDepth}
-              onChange={(e) => updateConfig("maxPostreqDepth", parseInt(e.target.value))}
-              style={sliderStyle}
+              type="checkbox"
+              checked={config.showCorequisites}
+              onChange={(e) => updateConfig("showCorequisites", e.target.checked)}
+              style={checkboxStyle}
             />
-          </div>
+            <span style={labelStyle}>SHOW COREQUISITES</span>
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={config.showInfoByDefault}
+              onChange={(e) => updateConfig("showInfoByDefault", e.target.checked)}
+              style={checkboxStyle}
+            />
+            <span style={labelStyle}>SHOW INFO BY DEFAULT</span>
+          </label>
+        </div>
+      </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                checked={config.showExclusions}
-                onChange={(e) => updateConfig("showExclusions", e.target.checked)}
-                style={checkboxStyle}
-              />
-              <span style={labelStyle}>SHOW EXCLUSIONS</span>
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                checked={config.showCorequisites}
-                onChange={(e) => updateConfig("showCorequisites", e.target.checked)}
-                style={checkboxStyle}
-              />
-              <span style={labelStyle}>SHOW COREQUISITES</span>
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                checked={config.showInfoByDefault}
-                onChange={(e) => updateConfig("showInfoByDefault", e.target.checked)}
-                style={checkboxStyle}
-              />
-              <span style={labelStyle}>SHOW INFO BY DEFAULT</span>
-            </label>
-          </div>
-
-          <button
-            onClick={resetConfig}
-            style={{
-              marginTop: "var(--space-sm)",
-              padding: "4px 8px",
-              fontFamily: "var(--font-mono)",
-              fontSize: "0.625rem",
-              textTransform: "uppercase",
-              border: "1px solid var(--c-border)",
-              borderRadius: 0,
-              background: "var(--c-bg-outer)",
-              cursor: "pointer",
-            }}
-          >
-            Reset Defaults
-          </button>
-        </>
-      )}
+      <button
+        onClick={resetConfig}
+        style={{
+          marginTop: "var(--space-xs)",
+          padding: "6px 12px",
+          fontFamily: "var(--font-mono)",
+          fontSize: "0.625rem",
+          textTransform: "uppercase",
+          border: "1px solid var(--c-border)",
+          borderRadius: 0,
+          background: "var(--c-bg-outer)",
+          cursor: "pointer",
+          width: "100%",
+          color: "var(--c-text-sub)",
+          transition: "all 0.2s ease",
+        }}
+      >
+        Reset Defaults
+      </button>
     </div>
   );
 }
