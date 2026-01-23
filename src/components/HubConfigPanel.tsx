@@ -66,7 +66,7 @@ export function HubConfigPanel({
     <div style={cardStyle}>
       <div style={headerStyle}>
         <span style={{ ...labelStyle, fontSize: "0.75rem", color: "var(--c-text-main)" }}>
-          CONFIGURATION
+          Settings
         </span>
         <button
           onClick={onClose}

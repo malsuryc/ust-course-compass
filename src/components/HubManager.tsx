@@ -271,7 +271,7 @@ function HubToolbar({
           whiteSpace: "nowrap",
         }}
       >
-        + New Hub
+        + New Tree
       </button>
 
       <div style={{ flex: 1 }} />
