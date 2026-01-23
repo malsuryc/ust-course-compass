@@ -80,13 +80,13 @@ function CourseGraphCanvasContent({
   }, [graph, setNodes, setEdges, handleNodeSelect, showInfoByDefault]);
 
   const resetView = useCallback(() => {
-    const masterNode = nodes.find((n) => n.id === masterCourseCode);
+    const masterNode = graph.nodes.find((n) => n.id === masterCourseCode);
     if (masterNode) {
       setCenter(masterNode.position.x, masterNode.position.y, { zoom: 1, duration: 200 });
     } else {
       setCenter(0, 0, { zoom: 1, duration: 200 });
     }
-  }, [setCenter, nodes, masterCourseCode]);
+  }, [setCenter, graph.nodes, masterCourseCode]);
 
   useEffect(() => {
     resetView();
