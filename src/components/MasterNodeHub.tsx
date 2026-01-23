@@ -117,8 +117,6 @@ export function MasterNodeHub({
         height: "100%",
         position: "relative",
         background: "var(--c-bg-outer)",
-        opacity: isActive ? 1 : 0.6,
-        transition: "opacity 0.2s",
         overflow: "hidden",
       }}
     >
