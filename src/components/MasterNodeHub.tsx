@@ -276,8 +276,8 @@ export function MasterNodeHub({
         <button
           onClick={() => setConfigExpanded(!configExpanded)}
           style={{
-            background: configExpanded ? "var(--c-border-active)" : "var(--c-bg-card)",
-            color: configExpanded ? "var(--c-bg-base)" : "var(--c-text-main)",
+            background: configExpanded ? "var(--c-edge-prereq)" : "var(--c-bg-outer)",
+            color: configExpanded ? "var(--c-text-inverse)" : "var(--c-text-main)",
             border: "1px solid var(--c-border)",
             padding: "8px 12px",
             fontFamily: "var(--font-mono)",
