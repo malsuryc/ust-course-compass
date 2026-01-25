@@ -7,6 +7,7 @@ import {
   buildCourseGraph,
   createCourseMap,
   buildReversePrereqMap,
+  buildReverseCoreqMap,
 } from "@/lib/graphBuilder";
 import { normalizeCourseCode } from "@/lib/prerequisiteParser";
 
@@ -42,6 +43,11 @@ export function useSingleCourseGraph(
     return buildReversePrereqMap(courseMap);
   }, [catalog, courseMap]);
 
+  const reverseCoreqMap = useMemo(() => {
+    if (!catalog || courseMap.size === 0) return undefined;
+    return buildReverseCoreqMap(courseMap);
+  }, [catalog, courseMap]);
+
   const courseExists = useMemo(() => {
     const normalized = normalizeCourseCode(masterCourseCode);
     return courseMap.has(normalized);
@@ -57,8 +63,9 @@ export function useSingleCourseGraph(
       courseMap,
       config,
       reversePrereqMap,
+      reverseCoreqMap,
     });
-  }, [catalog, courseMap, masterCourseCode, courseExists, config, reversePrereqMap]);
+  }, [catalog, courseMap, masterCourseCode, courseExists, config, reversePrereqMap, reverseCoreqMap]);
 
   const setMasterCourse = useCallback((code: string) => {
     const normalized = normalizeCourseCode(code);

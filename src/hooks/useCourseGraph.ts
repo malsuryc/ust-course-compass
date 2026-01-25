@@ -7,6 +7,7 @@ import {
   buildCourseGraph,
   createCourseMap,
   buildReversePrereqMap,
+  buildReverseCoreqMap,
 } from "@/lib/graphBuilder";
 import type { RawCourse, CourseGraph, GraphConfig } from "@/types/graph";
 import { DEFAULT_GRAPH_CONFIG } from "@/types/graph";
@@ -68,6 +69,12 @@ export function useCourseGraph(): UseCourseGraphResult {
     return buildReversePrereqMap(courseMap);
   }, [catalog, courseMap]);
 
+  // Build reverse corequisite map (course -> courses that list it as a corequisite)
+  const reverseCoreqMap = useMemo(() => {
+    if (!catalog || courseMap.size === 0) return undefined;
+    return buildReverseCoreqMap(courseMap);
+  }, [catalog, courseMap]);
+
   // Check if master course exists
   const courseExists = useMemo(() => {
     const normalized = normalizeCourseCode(masterCourseCode);
@@ -85,8 +92,9 @@ export function useCourseGraph(): UseCourseGraphResult {
       courseMap,
       config,
       reversePrereqMap,
+      reverseCoreqMap,
     });
-  }, [catalog, courseMap, masterCourseCode, courseExists, config, reversePrereqMap]);
+  }, [catalog, courseMap, masterCourseCode, courseExists, config, reversePrereqMap, reverseCoreqMap]);
 
   // Set master course (normalize input)
   const setMasterCourse = useCallback((code: string) => {

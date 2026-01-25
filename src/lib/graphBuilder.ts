@@ -139,6 +139,8 @@ export interface BuildGraphOptions {
   config?: GraphConfig;
   /** Reverse lookup map: course code -> courses that require it */
   reversePrereqMap?: Map<string, Set<string>>;
+  /** Reverse corequisite lookup map: course code -> courses that list it as a corequisite */
+  reverseCoreqMap?: Map<string, Set<string>>;
 }
 
 /**
@@ -164,6 +166,28 @@ export function buildReversePrereqMap(
 }
 
 /**
+ * Builds a reverse corequisite lookup map at runtime.
+ * Maps each course code to the set of courses that list it as a corequisite.
+ */
+export function buildReverseCoreqMap(
+  courseMap: Map<string, RawCourse>
+): Map<string, Set<string>> {
+  const reverseMap = new Map<string, Set<string>>();
+
+  for (const [courseCode, course] of courseMap) {
+    const coreq = parsePrerequisite(course.courseCorequisite);
+    for (const coreqCode of coreq.courseCodes) {
+      if (!reverseMap.has(coreqCode)) {
+        reverseMap.set(coreqCode, new Set());
+      }
+      reverseMap.get(coreqCode)!.add(courseCode);
+    }
+  }
+
+  return reverseMap;
+}
+
+/**
  * Builds a semantic-zoned course dependency graph.
  * - Center: Master node
  * - North: Post-requisites (courses that require the master)
@@ -177,6 +201,7 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
     courseMap,
     config = DEFAULT_GRAPH_CONFIG,
     reversePrereqMap,
+    reverseCoreqMap,
   } = options;
 
   const normalizedTarget = normalizeCourseCode(targetCourseCode);
@@ -347,37 +372,23 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
   };
   traversePrereqsAndCoreqs(normalizedTarget, 1);
 
-  // ========== North Zone: Post-requisites ==========
-  if (reversePrereqMap) {
+  // ========== North Zone: Post-requisites & Reverse Corequisites ==========
+  if (reversePrereqMap || reverseCoreqMap) {
     const visitedNorth = new Set<string>();
-    const traversePostreqs = (courseCode: string, depth: number) => {
+    const traverseNorth = (courseCode: string, depth: number) => {
       if (depth > config.maxPostreqDepth || visitedNorth.has(courseCode)) {
         return;
       }
       visitedNorth.add(courseCode);
 
-      const postreqs = reversePrereqMap.get(courseCode);
-      if (!postreqs) return;
-
-      for (const postreqCode of postreqs) {
-        const postreqCourse = courseMap.get(postreqCode);
-        if (postreqCourse && !nodesMap.has(postreqCode)) {
-          addNode(postreqCourse, "north", depth);
-          // Edge: course -> postreq (top to bottom)
-          addEdge(
-            courseCode,
-            postreqCode,
-            "prerequisite",
-            undefined,
-            "sourceBottom",
-            "targetBottom"
-          );
-          // Recursively find north-north (only north zone connections)
-          traversePostreqs(postreqCode, depth + 1);
-        } else if (postreqCourse && nodesMap.has(postreqCode)) {
-          // Node already exists, just add edge if it's in north zone
-          const existingNode = nodesMap.get(postreqCode);
-          if (existingNode?.data.zone === "north") {
+      // 1. Process Post-requisites (courses that require current course)
+      const postreqs = reversePrereqMap?.get(courseCode);
+      if (postreqs) {
+        for (const postreqCode of postreqs) {
+          const postreqCourse = courseMap.get(postreqCode);
+          if (postreqCourse && !nodesMap.has(postreqCode)) {
+            addNode(postreqCourse, "north", depth);
+            // Edge: course -> postreq (top to bottom)
             addEdge(
               courseCode,
               postreqCode,
@@ -386,11 +397,68 @@ export function buildCourseGraph(options: BuildGraphOptions): CourseGraph {
               "sourceBottom",
               "targetBottom"
             );
+            traverseNorth(postreqCode, depth + 1);
+          } else if (postreqCourse && nodesMap.has(postreqCode)) {
+            // Node already exists
+            const existingNode = nodesMap.get(postreqCode);
+            if (existingNode?.data.zone === "north") {
+              addEdge(
+                courseCode,
+                postreqCode,
+                "prerequisite",
+                undefined,
+                "sourceBottom",
+                "targetBottom"
+              );
+            }
+          }
+        }
+      }
+
+      // 2. Process Reverse Corequisites (courses that list current course as coreq)
+      // Treat as post-requisite relation (Course A is coreq of B -> B is "postreq" of A)
+      if (config.showCorequisites) {
+        const reverseCoreqs = reverseCoreqMap?.get(courseCode);
+        if (reverseCoreqs) {
+          for (const coreqCallerCode of reverseCoreqs) {
+            // Check if it's mutual (bidirectional)
+            // If mutual, it's already handled in South/East zone logic
+            const isMutual = areMutualCorequisites(courseCode, coreqCallerCode, courseMap);
+            
+            if (!isMutual) {
+              const coreqCallerCourse = courseMap.get(coreqCallerCode);
+              if (coreqCallerCourse && !nodesMap.has(coreqCallerCode)) {
+                addNode(coreqCallerCourse, "north", depth);
+                // Edge: course -> caller (treated as postreq)
+                // Use corequisite style edge
+                addEdge(
+                  courseCode,
+                  coreqCallerCode,
+                  "corequisite",
+                  undefined, 
+                  "sourceBottom", // Connect from bottom of current
+                  "targetBottom"  // To bottom of target (standard north zone flow)
+                );
+                traverseNorth(coreqCallerCode, depth + 1);
+              } else if (coreqCallerCourse && nodesMap.has(coreqCallerCode)) {
+                 const existingNode = nodesMap.get(coreqCallerCode);
+                 if (existingNode?.data.zone === "north") {
+                    addEdge(
+                      courseCode,
+                      coreqCallerCode,
+                      "corequisite",
+                      undefined,
+                      "sourceBottom",
+                      "targetBottom"
+                    );
+                 }
+              }
+            }
           }
         }
       }
     };
-    traversePostreqs(normalizedTarget, 1);
+    traverseNorth(normalizedTarget, 1);
   }
 
   // ========== West Zone: Exclusions ==========
