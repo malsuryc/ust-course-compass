@@ -1,0 +1,67 @@
+# =============================================================================
+# Release Workflow - Automated versioning with Changesets
+# =============================================================================
+# This workflow runs every time you push to main. It does TWO things:
+#
+# MODE 1: Create Release PR (when changesets exist)
+#   - If you've added changesets (via "npm run changeset"), this workflow
+#     creates a "Release PR" that shows:
+#     * What version bump will happen (patch/minor/major)
+#     * The updated CHANGELOG.md
+#   - The Release PR stays open until you're ready to release
+#
+# MODE 2: Publish Release (when Release PR is merged)
+#   - When you merge the Release PR, this workflow:
+#     * Updates package.json version
+#     * Updates CHANGELOG.md
+#     * Creates a git tag (e.g., v0.2.0)
+#     * Creates a GitHub Release
+#
+# This gives YOU control over WHEN to release, while automating the HOW!
+# =============================================================================
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+# Prevent multiple release workflows from running at the same time
+# This avoids race conditions when multiple commits are pushed quickly
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Download the code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Install Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4: Run the Changesets action
+      # This is the magic step that handles both modes:
+      # - If changesets exist: Creates/updates a Release PR
+      # - If Release PR was just merged: Creates tag and GitHub Release
+      - name: Create Release PR or Publish
+        uses: changesets/action@v1
+        with:
+          # Title for the Release PR
+          title: "chore: release"
+          # Commit message when the Release PR is merged
+          commit: "chore: release"
+        env:
+          # GITHUB_TOKEN is automatically provided by GitHub Actions
+          # It allows the action to create PRs and releases
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
