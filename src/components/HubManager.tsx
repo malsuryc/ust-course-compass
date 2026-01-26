@@ -175,7 +175,7 @@ function HubToolbar({
           marginRight: "var(--space-md)",
         }}
       >
-        UST Course Compass <span style={{ fontSize: "0.625rem", marginTop: 2, color: "var(--c-text-sub)" }}>BETA</span>
+        UST Course Compass <span style={{ fontSize: "0.625rem", marginTop: 2, color: "var(--c-text-sub)", textTransform: "none" }}>v0.1.0</span>
       </div>
 
       <div
