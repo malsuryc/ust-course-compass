@@ -1,0 +1,97 @@
+# =============================================================================
+# Deploy Workflow - Automatic Vercel Deployments
+# =============================================================================
+# This workflow handles deployments to Vercel:
+#
+# PREVIEW DEPLOYMENTS (on Pull Requests):
+#   - Every PR gets its own preview URL
+#   - Great for testing changes before merging
+#   - Preview URL appears in the PR checks
+#
+# PRODUCTION DEPLOYMENTS (on Release):
+#   - When a GitHub Release is published (via the Release workflow)
+#   - Deploys to your main production URL
+#
+# REQUIRED SECRETS (add these in GitHub Settings → Secrets → Actions):
+#   - VERCEL_TOKEN: Your Vercel API token (from vercel.com/account/tokens)
+#   - VERCEL_ORG_ID: Your organization ID (from .vercel/project.json)
+#   - VERCEL_PROJECT_ID: Your project ID (from .vercel/project.json)
+# =============================================================================
+
+name: Deploy
+
+on:
+  # Deploy preview on every PR
+  pull_request:
+    branches: [main]
+
+  # Deploy to production when a release is published
+  release:
+    types: [published]
+
+# These environment variables are used by all jobs
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  # =============================================================================
+  # Preview Deployment - Runs on Pull Requests
+  # =============================================================================
+  deploy-preview:
+    name: Deploy Preview
+    # Only run this job for pull requests
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Install Vercel CLI globally
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      # Pull Vercel project settings for preview environment
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      # Build the project using Vercel's build system
+      - name: Build Project
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      # Deploy to Vercel (preview environment)
+      # The --prebuilt flag uses the build output from the previous step
+      - name: Deploy to Vercel (Preview)
+        run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+
+  # =============================================================================
+  # Production Deployment - Runs when a Release is published
+  # =============================================================================
+  deploy-production:
+    name: Deploy Production
+    # Only run this job for release events
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Install Vercel CLI globally
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      # Pull Vercel project settings for production environment
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      # Build the project for production
+      # The --prod flag optimizes the build for production
+      - name: Build Project
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      # Deploy to Vercel production
+      # The --prod flag deploys to your main production URL
+      - name: Deploy to Vercel (Production)
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
