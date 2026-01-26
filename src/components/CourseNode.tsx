@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useState, useEffect } from "react";
+import { memo, useCallback, useState, useEffect, useRef } from "react";
 import { Handle, Position, type NodeProps } from "reactflow";
 import type { CourseNodeData } from "@/types/graph";
 import { CourseInfoCard } from "./CourseInfoCard";
@@ -28,7 +28,6 @@ function CourseNodeComponent({ data, selected, id }: NodeProps<CourseNodeData>) 
     level,
     careerType,
     isMaster,
-    zone,
     meta,
     onNodeSelect,
     infoCardOpenByDefault,
@@ -36,9 +35,12 @@ function CourseNodeComponent({ data, selected, id }: NodeProps<CourseNodeData>) 
 
   const [showInfo, setShowInfo] = useState(infoCardOpenByDefault ?? false);
 
+  const prevInfoCardOpenByDefault = useRef(infoCardOpenByDefault);
   useEffect(() => {
-    if (infoCardOpenByDefault !== undefined) {
-      setShowInfo(infoCardOpenByDefault);
+    if (infoCardOpenByDefault !== undefined && infoCardOpenByDefault !== prevInfoCardOpenByDefault.current) {
+      prevInfoCardOpenByDefault.current = infoCardOpenByDefault;
+      // Use setTimeout to defer state update out of effect
+      setTimeout(() => setShowInfo(infoCardOpenByDefault), 0);
     }
   }, [infoCardOpenByDefault]);
 

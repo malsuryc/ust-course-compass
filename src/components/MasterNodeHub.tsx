@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, type MouseEvent } from "react";
+import { useCallback, useState } from "react";
 import { type NodeMouseHandler } from "reactflow";
 
 import CourseGraphCanvas from "./CourseGraphCanvas";
@@ -27,7 +27,6 @@ export function MasterNodeHub({
   catalogError,
   onMasterChange,
   onNodeClick,
-  isActive = true,
 }: MasterNodeHubProps) {
   const {
     graph,

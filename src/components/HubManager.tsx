@@ -9,14 +9,11 @@ import { useMultiCourseGraph } from "@/hooks/useMultiCourseGraph";
 import { fetchCatalog } from "@/lib/api";
 import type { RawCourse } from "@/types/graph";
 
-type HubLayoutMode = "tabs" | "grid-1" | "grid-2" | "grid-3" | "grid-4";
-
 interface HubManagerProps {
-  initialCourseCode?: string;
   onNodeClick?: NodeMouseHandler;
 }
 
-export function HubManager({ initialCourseCode, onNodeClick }: HubManagerProps) {
+export function HubManager({ onNodeClick }: HubManagerProps) {
   const {
     hubs,
     activeHubId,
@@ -25,7 +22,6 @@ export function HubManager({ initialCourseCode, onNodeClick }: HubManagerProps) 
     setActiveHub,
     updateHubMaster,
     duplicateHub,
-    getActiveHub,
   } = useMultiCourseGraph();
 
   const {
@@ -65,8 +61,6 @@ export function HubManager({ initialCourseCode, onNodeClick }: HubManagerProps) 
     },
     [duplicateHub]
   );
-
-  const activeHub = getActiveHub();
 
   if (catalogError) {
     return (

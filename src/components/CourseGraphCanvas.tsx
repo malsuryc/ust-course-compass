@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import ReactFlow, {
   Controls,
   Background,
@@ -16,7 +16,7 @@ import "reactflow/dist/style.css";
 
 import CourseNodeComponent from "./CourseNode";
 import CourseEdgeComponent from "./CourseEdge";
-import type { CourseNodeData, CourseEdge, GraphConfig } from "@/types/graph";
+import type { CourseNodeData, CourseEdge } from "@/types/graph";
 
 const nodeTypes = {
   course: CourseNodeComponent,

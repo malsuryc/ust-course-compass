@@ -24,7 +24,6 @@ const NODE_HEIGHT = 80;
 const HORIZONTAL_GAP = 60;  // Gap between nodes horizontally
 const VERTICAL_GAP = 100;   // Gap between nodes vertically
 const ZONE_PADDING = 80;    // Padding around zones
-const BORDER_RING_RADIUS = 250; // Distance from center to depth-1 border ring
 
 // ============================================================
 // Helper Functions
