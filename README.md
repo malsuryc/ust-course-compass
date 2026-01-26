@@ -12,3 +12,4 @@ Data from [ust-course-catalog](https://github.com/ust-archive/ust-course-catalog
 * [ ] Filter to show specific course nodes
 * [ ] Better tree hierarchy
 * [ ] Calculate course combination with least credit / amount to meet prerequisite of target course
+
