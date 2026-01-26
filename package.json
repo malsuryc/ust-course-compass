@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "changeset": "changeset",
+    "version": "changeset version"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.19",
@@ -17,6 +19,8 @@
     "reactflow": "^11.11.4"
   },
   "devDependencies": {
+    "@changesets/changelog-github": "^0.5.2",
+    "@changesets/cli": "^2.29.8",
     "@tailwindcss/postcss": "^4",
     "@types/dagre": "^0.7.53",
     "@types/node": "^20",
